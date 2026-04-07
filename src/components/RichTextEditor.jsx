@@ -2,7 +2,7 @@ import React from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
-const RichTextEditor = ({ value, onChange, placeholder, className = "" }) => {
+const RichTextEditor = ({ value, onChange, placeholder, className = "", onImagePaste }) => {
     const modules = {
         toolbar: [
             [{ 'header': [1, 2, false] }],
@@ -20,7 +20,7 @@ const RichTextEditor = ({ value, onChange, placeholder, className = "" }) => {
     ];
 
     return (
-        <div className={`rich-text-wrapper ${className}`}>
+        <div className={`rich-text-wrapper ${className}`} onPaste={onImagePaste}>
             <ReactQuill
                 theme="snow"
                 value={value || ''}
