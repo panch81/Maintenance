@@ -38,16 +38,19 @@ export const useDriveStorage = () => {
             let newSettings = { ...settings };
 
             for (const file of files) {
+                console.log(`[Storage] Initializing ${file}...`);
                 const fileData = await driveService.getFile(`${file}.json`, fid);
                 if (fileData) {
                     if (file === 'settings') {
-                        newSettings = { ...settings, ...fileData.content, categories: { ...settings.categories, ...fileData.content.categories } };
+                        newSettings = { ...newSettings, ...fileData.content, categories: { ...(newSettings.categories || {}), ...(fileData.content.categories || {}) } };
                     } else {
-                        newData[file] = fileData.content;
+                        newData[file] = Array.isArray(fileData.content) ? fileData.content : [];
                     }
                     newFileIds[file] = fileData.id;
+                    console.log(`[Storage] Loaded ${file} successfully.`);
                 } else {
                     const initialContent = file === 'settings' ? settings : [];
+                    console.log(`[Storage] File ${file}.json not found, creating from template...`);
                     const savedFile = await driveService.saveFile(`${file}.json`, initialContent, fid);
                     if (file === 'settings') {
                         newSettings = initialContent;
@@ -61,10 +64,16 @@ export const useDriveStorage = () => {
             setData(newData);
             setSettings(newSettings);
             setFileIds(newFileIds);
+            console.log('[Storage] All data loaded from Drive.');
         } catch (error) {
-            console.error('Failed to initialize storage:', error);
-            // Default to empty arrays instead of undefined if it crashes during loop
-            if (!data.activities) setData({ activities: [], documentation: [], meetings: [] });
+            console.error('[Storage] CRITICAL: Failed to initialize storage:', error);
+            // Ensure we don't return an incomplete object which would crash components
+            setData(prev => ({
+                activities: prev.activities || [],
+                documentation: prev.documentation || [],
+                meetings: prev.meetings || [],
+                projects: prev.projects || []
+            }));
         } finally {
             setLoading(false);
         }
