@@ -101,6 +101,7 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                             <RichTextEditor
                                 value={formData.content}
                                 onChange={val => setFormData({ ...formData, content: val })}
+                                onImagePaste={handlePaste}
                                 placeholder="Add detailed notes, links, or lists..."
                             />
                         </div>
@@ -111,10 +112,12 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                             <div className="date-input-wrapper">
                                 <input
                                     type="date"
+                                    required
                                     className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300"
                                     value={formData.date}
                                     onChange={e => setFormData({ ...formData, date: e.target.value })}
                                 />
+                                <Calendar className="date-input-icon text-text-secondary" size={16} />
                             </div>
                             </div>
                             <div>
@@ -122,10 +125,12 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                             <div className="date-input-wrapper">
                                 <input
                                     type="date"
+                                    required
                                     className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300"
                                     value={formData.dueDate}
                                     onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
                                 />
+                                <Calendar className="date-input-icon text-text-secondary" size={16} />
                             </div>
                             </div>
                         </div>
@@ -241,7 +246,9 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                            {data.map(item => (
+                            {data
+                                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                .map(item => (
                                 <tr key={item.id} className={`group hover:bg-blue-50/30 dark:hover:bg-sky-900/10 transition-colors ${item.closed ? 'opacity-50 grayscale-[0.5]' : ''}`}>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-3">

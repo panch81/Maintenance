@@ -195,7 +195,7 @@ const AppContent = () => {
             onUpload={uploadAttachment}
           />
         )}
-        {currentTab === 'calendar' && <CalendarModule data={data} />}
+        {currentTab === 'calendar' && <CalendarModule data={data} setTab={setTab} onSearch={setSearchQuery} />}
         {currentTab === 'admin' && (
           <AdminModule settings={settings} onSaveSettings={(s) => saveData('settings', s)} />
         )}

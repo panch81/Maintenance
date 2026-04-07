@@ -98,13 +98,15 @@ export const MeetingModule = ({ data, categories = [], projects = [], onSave, on
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Date</label>
                             <div className="date-input-wrapper">
-                                <input type="date" className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-workday-blue text-sm dark:text-slate-300" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                                <input type="date" required className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-workday-blue text-sm dark:text-slate-300" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                                <Calendar className="date-input-icon text-text-secondary" size={16} />
                             </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Due Date</label>
                             <div className="date-input-wrapper">
-                                <input type="date" className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-workday-blue text-sm dark:text-slate-300" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
+                                <input type="date" required className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-workday-blue text-sm dark:text-slate-300" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
+                                <Calendar className="date-input-icon text-text-secondary" size={16} />
                             </div>
                             </div>
                         </div>
@@ -131,6 +133,7 @@ export const MeetingModule = ({ data, categories = [], projects = [], onSave, on
                             <RichTextEditor
                                 value={formData.notes}
                                 onChange={val => setFormData({ ...formData, notes: val })}
+                                onImagePaste={handlePaste}
                                 placeholder="Summary of discussions and decisions..."
                             />
                         </div>
@@ -176,7 +179,9 @@ export const MeetingModule = ({ data, categories = [], projects = [], onSave, on
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                            {data.map(item => (
+                            {data
+                                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                .map(item => (
                                 <tr key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-sky-900/10 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-3">

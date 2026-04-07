@@ -4,7 +4,7 @@ import {
     Clock, CheckCircle, FileText, Users, Flag
 } from 'lucide-react';
 
-export const CalendarModule = ({ data }) => {
+export const CalendarModule = ({ data, setTab, onSearch }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -30,9 +30,9 @@ export const CalendarModule = ({ data }) => {
         const current = new Date(dateStr);
 
         return [
-            ...activities.filter(a => a.date === dateStr).map(i => ({ ...i, type: 'Activity', color: 'bg-blue-500' })),
-            ...meetings.filter(m => m.date === dateStr).map(i => ({ ...i, type: 'Meeting', color: 'bg-green-500' })),
-            ...docs.filter(d => d.date === dateStr).map(i => ({ ...i, type: 'Doc', color: 'bg-orange-500' })),
+            ...activities.filter(a => a.date === dateStr).map(i => ({ ...i, type: 'Activity', tab: 'activities', color: 'bg-blue-500' })),
+            ...meetings.filter(m => m.date === dateStr).map(i => ({ ...i, type: 'Meeting', tab: 'meetings', color: 'bg-green-500' })),
+            ...docs.filter(d => d.date === dateStr).map(i => ({ ...i, type: 'Doc', tab: 'docs', color: 'bg-orange-500' })),
             ...projects.filter(p => {
                 const s = new Date(p.startDate);
                 const e = new Date(p.endDate);
@@ -40,12 +40,18 @@ export const CalendarModule = ({ data }) => {
             }).map(i => {
                 const isStart = i.startDate === dateStr;
                 const isEnd = i.endDate === dateStr;
-                return { ...i, type: 'Project', color: 'bg-purple-500', isStart, isEnd };
+                return { ...i, type: 'Project', tab: 'projects', color: 'bg-purple-500', isStart, isEnd };
             }),
-            ...activities.filter(a => a.dueDate === dateStr).map(i => ({ ...i, type: 'Due', color: 'bg-red-500' })),
-            ...meetings.filter(m => m.dueDate === dateStr).map(i => ({ ...i, type: 'Due', color: 'bg-red-400' })),
-            ...docs.filter(d => d.dueDate === dateStr).map(i => ({ ...i, type: 'Due', color: 'bg-red-300' })),
+            ...activities.filter(a => a.dueDate === dateStr).map(i => ({ ...i, type: 'Due', tab: 'activities', color: 'bg-red-500' })),
+            ...meetings.filter(m => m.dueDate === dateStr).map(i => ({ ...i, type: 'Due', tab: 'meetings', color: 'bg-red-400' })),
+            ...docs.filter(d => d.dueDate === dateStr).map(i => ({ ...i, type: 'Due', tab: 'docs', color: 'bg-red-300' })),
         ];
+    };
+
+    const handleItemClick = (item) => {
+        const title = item.title || item.topic;
+        if (onSearch) onSearch(title);
+        if (setTab) setTab(item.tab);
     };
 
     const calendarDays = [];
@@ -99,10 +105,11 @@ export const CalendarModule = ({ data }) => {
                                         </div>
                                         <div className="space-y-1 overflow-y-auto scrollbar-hide flex-1">
                                             {items.map((item, idx) => (
-                                                <div
+                                                <button
                                                     key={idx}
                                                     title={item.title || item.topic}
-                                                    className={`flex items-center space-x-1 px-2 py-0.5 text-[8px] font-bold text-white transition-all hover:scale-105 cursor-default shadow-sm ${item.color} ${item.type === 'Project'
+                                                    onClick={() => handleItemClick(item)}
+                                                    className={`w-full flex items-center space-x-1 px-2 py-0.5 text-[8px] font-bold text-white transition-all hover:brightness-110 active:scale-95 cursor-pointer shadow-sm ${item.color} ${item.type === 'Project'
                                                         ? `${item.isStart ? 'rounded-l-lg ml-1' : ''} ${item.isEnd ? 'rounded-r-lg mr-1' : ''} !scale-100 h-5 mb-0.5 flex items-center justify-center`
                                                         : 'rounded truncate'
                                                         }`}
@@ -111,7 +118,7 @@ export const CalendarModule = ({ data }) => {
                                                         {item.type === 'Due' ? '🚩' : (item.type === 'Project' ? '' : '•')}
                                                     </span>
                                                     <span className="truncate">{item.title || item.topic}</span>
-                                                </div>
+                                                </button>
                                             ))}
                                         </div>
                                     </>

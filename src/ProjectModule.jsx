@@ -19,6 +19,25 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
 
+    const handlePaste = async (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (const item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                setUploading(true);
+                try {
+                    const blob = item.getAsFile();
+                    const res = await onUpload(blob);
+                    const attachment = { id: res.id, name: res.name, link: res.webViewLink, isImage: true };
+                    setFormData(prev => ({ ...prev, attachments: [...(prev.attachments || []), attachment] }));
+                } catch (err) {
+                    alert('Error pasting image: ' + err.message);
+                } finally {
+                    setUploading(false);
+                }
+            }
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -140,6 +159,7 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                             <RichTextEditor
                                 value={formData.description}
                                 onChange={val => setFormData({ ...formData, description: val })}
+                                onImagePaste={handlePaste}
                                 placeholder="Project goals, scope, and key details..."
                             />
                         </div>
@@ -155,6 +175,7 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                                         value={formData.startDate}
                                         onChange={e => setFormData({ ...formData, startDate: e.target.value })}
                                     />
+                                    <Calendar className="date-input-icon text-text-secondary" size={16} />
                                 </div>
                             </div>
                             <div>
@@ -167,6 +188,7 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                                         value={formData.endDate}
                                         onChange={e => setFormData({ ...formData, endDate: e.target.value })}
                                     />
+                                    <Calendar className="date-input-icon text-text-secondary" size={16} />
                                 </div>
                             </div>
                         </div>
@@ -277,7 +299,9 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
             )}
 
             <div className="space-y-4">
-                {data.map(item => {
+                {data
+                    .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+                    .map(item => {
                     const linked = getLinkedItems(item.id);
                     const isExpanded = expandedId === item.id;
 

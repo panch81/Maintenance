@@ -10,8 +10,28 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
         title: '', link: '', snippet: '', notes: '', category: '', projectId: '',
-        date: new Date().toISOString().split('T')[0], dueDate: '', followUp: false
+        date: new Date().toISOString().split('T')[0], dueDate: '', followUp: false, attachments: []
     });
+    const [uploading, setUploading] = useState(false);
+
+    const handlePaste = async (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (const item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                setUploading(true);
+                try {
+                    const blob = item.getAsFile();
+                    const res = await onUpload(blob);
+                    const attachment = { id: res.id, name: res.name, link: res.webViewLink, isImage: true };
+                    setFormData(prev => ({ ...prev, attachments: [...(prev.attachments || []), attachment] }));
+                } catch (err) {
+                    alert('Error pasting image: ' + err.message);
+                } finally {
+                    setUploading(false);
+                }
+            }
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -96,11 +116,17 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
                         <div className="grid grid-cols-2 gap-4 col-span-2 md:col-span-1">
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Date</label>
-                                <input type="date" className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                            <div className="date-input-wrapper">
+                                <input type="date" required className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                                <Calendar className="date-input-icon text-text-secondary" size={16} />
+                            </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Due Date</label>
-                                <input type="date" className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
+                            <div className="date-input-wrapper">
+                                <input type="date" required className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
+                                <Calendar className="date-input-icon text-text-secondary" size={16} />
+                            </div>
                             </div>
                         </div>
 
@@ -113,11 +139,23 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
 
                         <div className="col-span-2">
                             <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Notes / Snippet</label>
-                            <RichTextEditor
-                                value={formData.notes}
-                                onChange={val => setFormData({ ...formData, notes: val })}
-                                placeholder="Add snippets, code, or detailed documentation notes..."
-                            />
+                                <RichTextEditor
+                                    value={formData.notes}
+                                    onChange={val => setFormData({ ...formData, notes: val })}
+                                    onImagePaste={handlePaste}
+                                    placeholder="Add snippets, code, or detailed documentation notes..."
+                                />
+                                {uploading && <p className="text-[10px] text-workday-blue animate-pulse mt-2">Uploading image...</p>}
+                                {formData.attachments?.length > 0 && (
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {formData.attachments.map(att => (
+                                            <div key={att.id} className="flex items-center space-x-2 px-3 py-1 bg-gray-100 dark:bg-slate-800 rounded-full text-[10px] font-bold text-gray-600 dark:text-slate-400 border border-gray-200 dark:border-slate-700">
+                                                <Paperclip size={10} />
+                                                <span className="truncate max-w-[100px]">{att.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                         </div>
                     </div>
 
@@ -145,7 +183,9 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                            {data.map(item => (
+                            {data
+                                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                .map(item => (
                                 <tr key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-sky-900/10 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-3">
