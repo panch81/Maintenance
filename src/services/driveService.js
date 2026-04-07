@@ -41,8 +41,11 @@ export const driveService = {
         const data = await response.json();
 
         if (data.files.length > 0) {
+            console.log(`[Drive] Folder "${FOLDER_NAME}" found:`, data.files[0].id);
             return data.files[0].id;
         }
+
+        console.warn(`[Drive] Folder "${FOLDER_NAME}" NOT found. Creating...`);
 
         // Create folder if not found
         const createResponse = await this.fetchWithAuth('https://www.googleapis.com/drive/v3/files', {
@@ -62,9 +65,13 @@ export const driveService = {
         const response = await this.fetchWithAuth(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`);
         const data = await response.json();
 
-        if (data.files.length === 0) return null;
+        if (data.files.length === 0) {
+            console.warn(`[Drive] File "${fileName}" NOT found in folder.`);
+            return null;
+        }
 
         const fileId = data.files[0].id;
+        console.log(`[Drive] File "${fileName}" found:`, fileId);
         const contentResponse = await this.fetchWithAuth(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
         return { id: fileId, content: await contentResponse.json() };
     },
