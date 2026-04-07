@@ -246,7 +246,7 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                            {data
+                            {(data || [])
                                 .sort((a, b) => new Date(b.date) - new Date(a.date))
                                 .map(item => (
                                 <tr key={item.id} className={`group hover:bg-blue-50/30 dark:hover:bg-sky-900/10 transition-colors ${item.closed ? 'opacity-50 grayscale-[0.5]' : ''}`}>

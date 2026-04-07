@@ -299,7 +299,7 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
             )}
 
             <div className="space-y-4">
-                {data
+                {(data || [])
                     .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
                     .map(item => {
                     const linked = getLinkedItems(item.id);
