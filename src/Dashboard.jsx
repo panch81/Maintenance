@@ -26,14 +26,19 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
     today.setHours(0, 0, 0, 0);
     const twoWeeks = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-    const futureTasks = data.activities.filter(a => (a.dueDate ? new Date(a.dueDate) > today : new Date(a.date) > today) && !a.closed).sort((a, b) => new Date(a.dueDate || a.date) - new Date(b.dueDate || b.date));
+    const activities = data?.activities || [];
+    const documentation = data?.documentation || [];
+    const meetings = data?.meetings || [];
+    const projects = data?.projects || [];
 
-    const activeProjects = (data.projects || []).filter(p => !p.closed).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+    const futureTasks = activities.filter(a => (a.dueDate ? new Date(a.dueDate) > today : new Date(a.date) > today) && !a.closed).sort((a, b) => new Date(a.dueDate || a.date) - new Date(b.dueDate || b.date));
+
+    const activeProjects = projects.filter(p => !p.closed).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
 
     const priorityItems = [
-        ...data.activities.map(i => ({ ...i, type: 'Activity' })),
-        ...data.documentation.map(i => ({ ...i, type: 'Doc' })),
-        ...data.meetings.map(i => ({ ...i, type: 'Meeting' }))
+        ...activities.map(i => ({ ...i, type: 'Activity' })),
+        ...documentation.map(i => ({ ...i, type: 'Doc' })),
+        ...meetings.map(i => ({ ...i, type: 'Meeting' }))
     ].filter(item => {
         const due = item.dueDate ? new Date(item.dueDate) : null;
         const isUpcoming = due && due >= today && due <= twoWeeks;

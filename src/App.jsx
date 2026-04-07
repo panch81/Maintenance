@@ -55,20 +55,27 @@ const AppContent = () => {
   // Hybrid Search Logic
   const filteredData = useMemo(() => {
     const query = searchQuery.toLowerCase();
-    if (!query) return data;
+    const safeData = {
+      activities: data?.activities || [],
+      documentation: data?.documentation || [],
+      meetings: data?.meetings || [],
+      projects: data?.projects || []
+    };
+
+    if (!query) return safeData;
 
     return {
-      activities: data.activities.filter(a =>
-        a.title.toLowerCase().includes(query) || a.content.toLowerCase().includes(query) || a.category?.toLowerCase().includes(query)
+      activities: safeData.activities.filter(a =>
+        a.title?.toLowerCase().includes(query) || a.content?.toLowerCase().includes(query) || a.category?.toLowerCase().includes(query)
       ),
-      documentation: data.documentation.filter(d =>
-        d.title.toLowerCase().includes(query) || d.notes.toLowerCase().includes(query) || d.snippet.toLowerCase().includes(query) || d.category?.toLowerCase().includes(query)
+      documentation: safeData.documentation.filter(d =>
+        d.title?.toLowerCase().includes(query) || d.notes?.toLowerCase().includes(query) || d.snippet?.toLowerCase().includes(query) || d.category?.toLowerCase().includes(query)
       ),
-      meetings: data.meetings.filter(m =>
-        m.topic.toLowerCase().includes(query) || m.notes.toLowerCase().includes(query) || m.category?.toLowerCase().includes(query)
+      meetings: safeData.meetings.filter(m =>
+        m.topic?.toLowerCase().includes(query) || m.notes?.toLowerCase().includes(query) || m.category?.toLowerCase().includes(query)
       ),
-      projects: (data.projects || []).filter(p =>
-        p.title.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query) || p.category?.toLowerCase().includes(query)
+      projects: safeData.projects.filter(p =>
+        p.title?.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query) || p.category?.toLowerCase().includes(query)
       )
     };
   }, [data, searchQuery]);
