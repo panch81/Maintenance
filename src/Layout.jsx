@@ -85,19 +85,7 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                 throw new Error("No compatible Gemini models found in your account.");
             }
 
-            // Priority: 3.1 > 3 > 2.5 > 1.5 > everything else
-            const bestModel = availableModels.find(m => m.includes('gemini-3.1-flash')) ||
-                             availableModels.find(m => m.includes('gemini-3.1')) ||
-                             availableModels.find(m => m.includes('gemini-3-flash')) ||
-                             availableModels.find(m => m.includes('gemini-2.5')) ||
-                             availableModels.find(m => m.includes('gemini-1.5-flash')) ||
-                             availableModels[0];
-
-            console.log(`[AI] Using best available model: ${bestModel}`);
-
-            // 2. GENERATE CONTENT using the discovered model
-            const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${bestModel}:generateContent?key=${GEMINI_API_KEY}`;
-            
+            // 2. GENERATE CONTENT with auto-retry on multiple models
             const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
             Analyze the user's data: ${JSON.stringify(contextData)}
             
@@ -107,31 +95,62 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                - TYPE must be exactly: "activities", "docs", "meetings", or "projects".
             3. Use the user's language (Spanish/English). Be professional.`;
 
-            const response = await fetch(generateUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        role: 'user',
-                        parts: [
-                            { text: "SYSTEM INSTRUCTIONS:\n" + systemPrompt },
-                            { text: "\n\nUSER QUERY:\n" + query }
-                        ]
-                    }]
-                })
+            // Sort models by priority (latest first)
+            const sortedModels = availableModels.sort((a, b) => {
+                const priority = (name) => {
+                    if (name.includes('gemini-3.1')) return 10;
+                    if (name.includes('gemini-3')) return 9;
+                    if (name.includes('gemini-2.5')) return 8;
+                    if (name.includes('gemini-1.5')) return 7;
+                    return 0;
+                };
+                return priority(b) - priority(a);
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || 'Generation failed');
-            }
+            console.log(`[AI] Sorted Models for attempt:`, sortedModels);
 
-            const result = await response.json();
-            const text = result.candidates[0].content.parts[0].text;
-            setAiResponse(text);
+            let lastErrorMessage = "";
+            for (const modelName of sortedModels) {
+                try {
+                    console.log(`[AI] Attempting with model: ${modelName}`);
+                    const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+                    
+                    const response = await fetch(generateUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                role: 'user',
+                                parts: [
+                                    { text: "SYSTEM INSTRUCTIONS:\n" + systemPrompt },
+                                    { text: "\n\nUSER QUERY:\n" + query }
+                                ]
+                            }]
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        const msg = errorData.error?.message || 'Error';
+                        console.warn(`[AI] Model ${modelName} failed: ${msg}`);
+                        lastErrorMessage = msg;
+                        continue; // Try next model!
+                    }
+
+                    const result = await response.json();
+                    const text = result.candidates[0].content.parts[0].text;
+                    setAiResponse(text);
+                    return; // EXIT loop on success!
+                } catch (loopErr) {
+                    console.error(`[AI] Exception in loop for ${modelName}:`, loopErr);
+                    lastErrorMessage = loopErr.message;
+                }
+            }
+            
+            throw new Error(`All available models are busy or returned error: ${lastErrorMessage}`);
         } catch (err) {
-            console.error("[AI] Error:", err.message);
-            setAiResponse("⚠️ Hubo un problema con la IA: " + err.message + ". Asegúrate de que tu API Key es correcta y tiene permisos.");
+            console.error("[AI] Final Error:", err.message);
+            setAiResponse("⚠️ Hubo un problema con la IA: " + err.message + ". Asegúrate de que tu API Key es correcta y permite estos modelos.");
         } finally {
             setIsAiLoading(false);
         }
