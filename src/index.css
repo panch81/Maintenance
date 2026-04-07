@@ -15,23 +15,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0;
   padding: 0;
   cursor: pointer;
-  opacity: 0; /* Hidden but clickable over the entire area */
-  z-index: 2;
-}
-
-/* Custom Calendar Icon Wrapper */
-.date-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
+  opacity: 0 !important; /* Force hide */
+  -webkit-appearance: none;
+  background: none !important;
 }
 
 .date-input-icon {
   position: absolute;
-  right: 12px;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
   pointer-events: none;
-  z-index: 1;
-  opacity: 0.5;
+  color: #ffffff !important; /* Pure white for maximum contrast */
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+
+/* Ensure parents don't hide the absolute children */
+.date-input-wrapper > * {
+  box-sizing: border-box;
 }
 
 :root {
