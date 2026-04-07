@@ -153,6 +153,7 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                                     className="w-full p-3 bg-bg-primary border border-border-dim rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm text-text-primary font-bold"
                                     value={formData.startDate}
                                     onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                 />
                             </div>
                             <div>
@@ -163,6 +164,7 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                                     className="w-full p-3 bg-bg-primary border border-border-dim rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm text-text-primary font-bold"
                                     value={formData.endDate}
                                     onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                 />
                             </div>
                         </div>

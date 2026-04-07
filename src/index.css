@@ -1,6 +1,25 @@
-@import "tailwindcss";
+/* Date Input Styling */
+input[type="date"] {
+  position: relative;
+  min-height: 48px;
+}
+
+/* Ensure the whole field triggers the picker and icon is visible */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: var(--calendar-filter);
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
 
 :root {
+  --calendar-filter: invert(0);
+  color-scheme: light;
+  /* ... existing vars ... */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   --bg-primary: #f5f5f7;
   --bg-secondary: #ffffff;
@@ -20,6 +39,8 @@
   --border-color: #333336;
   --workday-blue: #2997ff;
   --workday-lightBlue: #40a2ff;
+  --calendar-filter: invert(1);
+  color-scheme: dark;
 }
 
 /* Force dark: variant to use our .dark class in Tailwind v4 */

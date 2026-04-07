@@ -113,6 +113,7 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                                     className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300"
                                     value={formData.date}
                                     onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                 />
                             </div>
                             <div>
@@ -122,6 +123,7 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                                     className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300"
                                     value={formData.dueDate}
                                     onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
+                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                 />
                             </div>
                         </div>
