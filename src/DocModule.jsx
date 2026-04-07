@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import {
     Plus, Trash2, Link as LinkIcon, FileText,
-    Search, Flag, ExternalLink, X, Calendar, Edit3
+    Search, Flag, ExternalLink, X, Calendar, Edit3,
+    AlertCircle, Eye, Paperclip
 } from 'lucide-react';
 import RichTextEditor from './components/RichTextEditor';
 
 export const DocModule = ({ data, categories = [], projects = [], onSave, onDelete, onUpload }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [viewingItem, setViewingItem] = useState(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [formData, setFormData] = useState({
         title: '', link: '', snippet: '', notes: '', category: '', projectId: '',
         date: new Date().toISOString().split('T')[0], dueDate: '', followUp: false, attachments: []
@@ -42,7 +45,7 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
             setEditingId(null);
             setFormData({
                 title: '', link: '', snippet: '', notes: '', category: '', projectId: '',
-                date: new Date().toISOString().split('T')[0], dueDate: '', followUp: false
+                date: new Date().toISOString().split('T')[0], dueDate: '', followUp: false, attachments: []
             });
         } catch (e) {
             alert('Error saving documentation: ' + e.message);
@@ -220,9 +223,9 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {item.link && <a href={item.link} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-workday-blue hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all"><ExternalLink size={16} /></a>}
-                                            <button onClick={() => { setFormData(item); setEditingId(item.id); setIsAdding(true); }} className="p-2 text-gray-400 hover:text-workday-blue hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all"><Edit3 size={16} /></button>
-                                            <button onClick={() => onDelete(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                            <button onClick={() => setViewingItem(item)} className="p-2 text-gray-400 hover:text-green-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="View Details"><Eye size={16} /></button>
+                                            <button onClick={() => { setFormData(item); setEditingId(item.id); setIsAdding(true); }} className="p-2 text-gray-400 hover:text-workday-blue hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="Edit Item"><Edit3 size={16} /></button>
+                                            <button onClick={() => setConfirmDeleteId(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="Delete to Trash"><Trash2 size={16} /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -231,6 +234,77 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
                     </table>
                 </div>
             </div>
+
+            {/* View Detail Modal */}
+            {viewingItem && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-bg-secondary w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-border-dim overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="p-8 space-y-6">
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-black text-text-primary tracking-tight">{viewingItem.title}</h3>
+                                    <div className="flex items-center space-x-3 text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                                        <span className="flex items-center space-x-1"><Calendar size={12} /> <span>{viewingItem.date}</span></span>
+                                        {viewingItem.category && <span className="px-2 py-0.5 bg-bg-primary rounded border border-border-dim">{viewingItem.category}</span>}
+                                    </div>
+                                </div>
+                                <button onClick={() => setViewingItem(null)} className="p-2 hover:bg-bg-primary rounded-xl text-text-secondary transition-all"><X size={24} /></button>
+                            </div>
+
+                            <div className="bg-bg-primary/50 p-6 rounded-3xl border border-border-dim max-h-[40vh] overflow-y-auto rich-text-view">
+                                <div dangerouslySetInnerHTML={{ __html: viewingItem.notes || '<p class="italic opacity-50">No content provided.</p>' }} />
+                            </div>
+
+                            {viewingItem.attachments?.length > 0 && (
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest">Attachments</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {viewingItem.attachments.map(att => (
+                                            <a key={att.id} href={att.link} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 px-4 py-2 bg-blue-50 dark:bg-sky-900/20 text-workday-blue rounded-xl text-xs font-bold hover:bg-blue-100 transition-all border border-blue-100 dark:border-sky-900/40">
+                                                <Paperclip size={14} />
+                                                <span>{att.name}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex justify-end pt-4">
+                                <button onClick={() => setViewingItem(null)} className="bg-text-primary text-bg-primary px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-all">Close View</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Pop */}
+            {confirmDeleteId && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-bg-secondary p-8 rounded-[2rem] shadow-2xl border border-red-100 dark:border-red-900/20 max-w-sm w-full text-center space-y-6 animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto">
+                            <AlertCircle size={32} />
+                        </div>
+                        <div>
+                            <h4 className="text-xl font-black text-text-primary">Move to Trash?</h4>
+                            <p className="text-sm text-text-secondary mt-2">You can restore this item from the Recycle Bin within 30 days.</p>
+                        </div>
+                        <div className="flex flex-col space-y-3">
+                            <button 
+                                onClick={() => { onDelete(confirmDeleteId); setConfirmDeleteId(null); }} 
+                                className="w-full bg-red-500 text-white font-black py-4 rounded-xl uppercase text-xs tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-200 dark:shadow-none"
+                            >
+                                Yes, move to trash
+                            </button>
+                            <button 
+                                onClick={() => setConfirmDeleteId(null)} 
+                                className="w-full font-black py-3 rounded-xl uppercase text-xs tracking-widest text-text-secondary hover:bg-bg-primary transition-all"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

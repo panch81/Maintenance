@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     Plus, Trash2, Edit3, Paperclip, Briefcase,
     Calendar, ChevronDown, ChevronUp, Clock, ExternalLink,
-    Activity, FileText, MessageSquare, X, Check, Loader2, Link as LinkIcon
+    Activity, FileText, MessageSquare, X, Check, Loader2, Link as LinkIcon, Eye
 } from 'lucide-react';
 import RichTextEditor from './components/RichTextEditor';
 
@@ -12,6 +12,8 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
     const [editingId, setEditingId] = useState(null);
     const [quickAdd, setQuickAdd] = useState(null); // { type, projectId }
     const [pendingLinks, setPendingLinks] = useState({ activities: [], documentation: [], meetings: [] });
+    const [viewingItem, setViewingItem] = useState(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
     const [formData, setFormData] = useState({
         title: '', description: '', startDate: new Date().toISOString().split('T')[0], endDate: '', category: '', closed: false, attachments: []
@@ -351,8 +353,9 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <button onClick={(e) => { e.stopPropagation(); setFormData(item); setEditingId(item.id); setIsAdding(true); setPendingLinks({ activities: [], documentation: [], meetings: [] }); }} className="p-2 text-text-secondary hover:text-workday-blue hover:bg-bg-primary rounded-xl transition-all"><Edit3 size={18} /></button>
-                                        <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="p-2 text-text-secondary hover:text-red-500 hover:bg-bg-primary rounded-xl transition-all"><Trash2 size={18} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); setViewingItem(item); }} className="p-2 text-text-secondary hover:text-green-500 hover:bg-bg-primary rounded-xl transition-all" title="View Project Details"><Eye size={18} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); setFormData(item); setEditingId(item.id); setIsAdding(true); setPendingLinks({ activities: [], documentation: [], meetings: [] }); }} className="p-2 text-text-secondary hover:text-workday-blue hover:bg-bg-primary rounded-xl transition-all" title="Edit Project"><Edit3 size={18} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(item.id); }} className="p-2 text-text-secondary hover:text-red-500 hover:bg-bg-primary rounded-xl transition-all" title="Move to Trash"><Trash2 size={18} /></button>
                                         <div className="ml-2 text-text-secondary">
                                             {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                         </div>
@@ -408,6 +411,110 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                     );
                 })}
             </div>
+
+            {/* View Detail Modal */}
+            {viewingItem && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-bg-secondary w-full max-w-4xl rounded-[2.5rem] shadow-2xl border border-border-dim overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="p-10 space-y-8">
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-2">
+                                    <h3 className="text-3xl font-black text-text-primary tracking-tight">{viewingItem.title}</h3>
+                                    <div className="flex items-center space-x-4 text-xs font-black uppercase tracking-widest text-text-secondary">
+                                        <span className="flex items-center space-x-1.5"><Calendar size={14} /> <span>{viewingItem.startDate} → {viewingItem.endDate}</span></span>
+                                        {viewingItem.category && <span className="px-3 py-1 bg-bg-primary rounded-lg border border-border-dim">{viewingItem.category}</span>}
+                                    </div>
+                                </div>
+                                <button onClick={() => setViewingItem(null)} className="p-3 hover:bg-bg-primary rounded-2xl text-text-secondary transition-all"><X size={32} /></button>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="space-y-6">
+                                    <div className="bg-bg-primary/50 p-6 rounded-[2rem] border border-border-dim min-h-[200px] overflow-y-auto rich-text-view">
+                                        <p className="text-[10px] font-black text-text-secondary uppercase tracking-[2px] mb-4">Project Overview</p>
+                                        <div dangerouslySetInnerHTML={{ __html: viewingItem.description || '<p class="italic opacity-50">No description provided.</p>' }} />
+                                    </div>
+                                    
+                                    {viewingItem.attachments?.length > 0 && (
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest">Project Resources</p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {viewingItem.attachments.map(att => (
+                                                    <a key={att.id} href={att.link} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 px-4 py-3 bg-bg-primary/50 text-text-primary rounded-2xl text-xs font-bold hover:bg-bg-primary transition-all border border-border-dim">
+                                                        <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm"><Paperclip size={16} className="text-workday-blue" /></div>
+                                                        <span className="truncate">{att.name}</span>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="space-y-6">
+                                    <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest">Linked Items Statistics</p>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="bg-blue-50 dark:bg-sky-900/10 p-5 rounded-3xl border border-blue-100 dark:border-sky-900/20 text-center">
+                                            <Activity size={20} className="mx-auto text-blue-500 mb-2" />
+                                            <p className="text-2xl font-black text-text-primary">{getLinkedItems(viewingItem.id).activities.length}</p>
+                                            <p className="text-[8px] font-black uppercase text-text-secondary tracking-widest">Tasks</p>
+                                        </div>
+                                        <div className="bg-orange-50 dark:bg-orange-900/10 p-5 rounded-3xl border border-orange-100 dark:border-orange-900/20 text-center">
+                                            <FileText size={20} className="mx-auto text-orange-500 mb-2" />
+                                            <p className="text-2xl font-black text-text-primary">{getLinkedItems(viewingItem.id).docs.length}</p>
+                                            <p className="text-[8px] font-black uppercase text-text-secondary tracking-widest">Docs</p>
+                                        </div>
+                                        <div className="bg-green-50 dark:bg-green-900/10 p-5 rounded-3xl border border-green-100 dark:border-green-900/20 text-center">
+                                            <MessageSquare size={20} className="mx-auto text-green-500 mb-2" />
+                                            <p className="text-2xl font-black text-text-primary">{getLinkedItems(viewingItem.id).meetings.length}</p>
+                                            <p className="text-[8px] font-black uppercase text-text-secondary tracking-widest">Meetings</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-6 bg-yellow-50/50 dark:bg-yellow-900/10 rounded-3xl border border-yellow-100 dark:border-yellow-900/20 flex items-start space-x-4">
+                                        <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-yellow-600"><AlertCircle size={20} /></div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-black text-text-primary uppercase tracking-widest">Management Note</p>
+                                            <p className="text-[11px] text-text-secondary leading-relaxed font-medium italic">Detailed project visualization summarizes active progress across multiple domains.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-4">
+                                <button onClick={() => setViewingItem(null)} className="bg-text-primary text-bg-primary px-12 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-xl shadow-gray-200 dark:shadow-none">Close Details</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Pop */}
+            {confirmDeleteId && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-bg-secondary p-8 rounded-[2.5rem] shadow-2xl border border-red-100 dark:border-red-900/20 max-w-sm w-full text-center space-y-6 animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-3xl flex items-center justify-center mx-auto">
+                            <AlertCircle size={32} />
+                        </div>
+                        <div>
+                            <h4 className="text-xl font-black text-text-primary uppercase tracking-tighter">Trash Project?</h4>
+                            <p className="text-sm text-text-secondary mt-2">The project and its links will be safely stored in the bin for 30 days.</p>
+                        </div>
+                        <div className="flex flex-col space-y-3">
+                            <button 
+                                onClick={() => { onDelete(confirmDeleteId); setConfirmDeleteId(null); }} 
+                                className="w-full bg-red-500 text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-200 dark:shadow-none"
+                            >
+                                Confirm Trash
+                            </button>
+                            <button 
+                                onClick={() => setConfirmDeleteId(null)} 
+                                className="w-full font-black py-3 rounded-2xl uppercase text-xs tracking-widest text-text-secondary hover:bg-bg-primary transition-all"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

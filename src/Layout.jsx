@@ -19,7 +19,14 @@ import {
     Loader2,
     ArrowRight,
     Bot,
-    Sparkle
+    Sparkle,
+    Trash2,
+    CheckSquare,
+    Settings,
+    Bell,
+    User,
+    ShieldCheck,
+    Mail
 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
@@ -156,6 +163,7 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                     <SidebarItem icon={Users} label={isSidebarOpen ? "Meetings" : ""} active={currentTab === 'meetings'} onClick={() => setTab('meetings')} />
                     <SidebarItem icon={Briefcase} label={isSidebarOpen ? "Projects" : ""} active={currentTab === 'projects'} onClick={() => setTab('projects')} />
                     <SidebarItem icon={CalendarIcon} label={isSidebarOpen ? "Calendar" : ""} active={currentTab === 'calendar'} onClick={() => setTab('calendar')} />
+                    <SidebarItem icon={Trash2} label={isSidebarOpen ? "Recycle Bin" : ""} active={currentTab === 'trash'} onClick={() => setTab('trash')} />
                     {showAdminTab && (
                         <div className="pt-4 mt-4 border-t border-gray-100 dark:border-slate-800">
                             <SidebarItem icon={SettingsIcon} label={isSidebarOpen ? "Admin Console" : ""} active={currentTab === 'admin'} onClick={() => setTab('admin')} />

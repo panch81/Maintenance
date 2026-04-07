@@ -9,6 +9,7 @@ import { DocModule } from './DocModule';
 import { MeetingModule } from './MeetingModule';
 import { ProjectModule } from './ProjectModule';
 import { CalendarModule } from './CalendarModule';
+import { TrashModule } from './TrashModule';
 import { AdminModule } from './AdminModule';
 import { LogIn, Loader2, ShieldAlert, Bot } from 'lucide-react';
 
@@ -47,10 +48,76 @@ const AppContent = () => {
   };
 
   const handleDeleteItem = async (type, id) => {
-    const fullList = data[type] || [];
-    const newList = fullList.filter(i => i.id !== id);
-    await saveData(type, newList);
+    try {
+      const fullList = data[type] || [];
+      const itemToDelete = fullList.find(i => i.id === id);
+      if (!itemToDelete) return;
+
+      // 1. Mark item for trash with original type and deletion date
+      const trashItem = {
+        ...itemToDelete,
+        originalType: type,
+        deletedAt: new Date().toISOString()
+      };
+
+      // 2. Remove from original list and add to trash
+      const newOriginalList = fullList.filter(i => i.id !== id);
+      const newTrash = [trashItem, ...(data.trash || [])];
+
+      // 3. Save both changes
+      await saveData(type, newOriginalList);
+      await saveData('trash', newTrash);
+    } catch (e) {
+      alert('Error moving item to trash: ' + e.message);
+    }
   };
+
+  const handleRestoreItem = async (id) => {
+    try {
+      const currentTrash = data.trash || [];
+      const itemToRestore = currentTrash.find(i => i.id === id);
+      if (!itemToRestore) return;
+
+      const { originalType, deletedAt, ...restoredItem } = itemToRestore;
+      const originalList = data[originalType] || [];
+
+      // 1. Move back to original and remove from trash
+      const newOriginalList = [restoredItem, ...originalList];
+      const newTrash = currentTrash.filter(i => i.id !== id);
+
+      // 2. Save both
+      await saveData(originalType, newOriginalList);
+      await saveData('trash', newTrash);
+    } catch (e) {
+      alert('Error restoring item: ' + e.message);
+    }
+  };
+
+  const handlePermanentDelete = async (id) => {
+    try {
+      const newTrash = (data.trash || []).filter(i => i.id !== id);
+      await saveData('trash', newTrash);
+    } catch (e) {
+      alert('Error permanently deleting item: ' + e.message);
+    }
+  };
+
+  // Auto-purge old trash (> 30 days) on load
+  useEffect(() => {
+    if (isAuthenticated && data.trash?.length > 0) {
+      const now = new Date();
+      const cleanTrash = data.trash.filter(item => {
+        const deletedDate = new Date(item.deletedAt);
+        const diffDays = (now - deletedDate) / (1000 * 60 * 60 * 24);
+        return diffDays <= 30; // 30 days limit
+      });
+      
+      if (cleanTrash.length !== data.trash.length) {
+        console.log(`[Storage] Purging ${data.trash.length - cleanTrash.length} items older than 30 days...`);
+        saveData('trash', cleanTrash);
+      }
+    }
+  }, [isAuthenticated, data.trash]);
 
   // Hybrid Search Logic
   const filteredData = useMemo(() => {
@@ -203,6 +270,13 @@ const AppContent = () => {
           />
         )}
         {currentTab === 'calendar' && <CalendarModule data={data} setTab={setTab} onSearch={setSearchQuery} />}
+        {currentTab === 'trash' && (
+          <TrashModule 
+            data={data.trash || []} 
+            onRestore={handleRestoreItem} 
+            onDeletePermanent={handlePermanentDelete} 
+          />
+        )}
         {currentTab === 'admin' && (
           <AdminModule settings={settings} onSaveSettings={(s) => saveData('settings', s)} />
         )}
