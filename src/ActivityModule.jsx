@@ -108,23 +108,25 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                         <div className="grid grid-cols-2 gap-4 col-span-2 md:col-span-1">
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Date</label>
+                            <div className="date-input-wrapper">
                                 <input
                                     type="date"
                                     className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300"
                                     value={formData.date}
                                     onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                 />
+                            </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Due Date</label>
+                            <div className="date-input-wrapper">
                                 <input
                                     type="date"
                                     className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300"
                                     value={formData.dueDate}
                                     onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
-                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                 />
+                            </div>
                             </div>
                         </div>
 

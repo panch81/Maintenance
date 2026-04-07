@@ -147,25 +147,27 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                         <div className="grid grid-cols-2 gap-4 col-span-2 md:col-span-1">
                             <div>
                                 <label className="text-[10px] font-black text-text-secondary uppercase tracking-[2px] mb-2 block">Start Date</label>
-                                <input
-                                    type="date"
-                                    required
-                                    className="w-full p-3 bg-bg-primary border border-border-dim rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm text-text-primary font-bold"
-                                    value={formData.startDate}
-                                    onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
-                                />
+                                <div className="date-input-wrapper">
+                                    <input
+                                        type="date"
+                                        required
+                                        className="w-full p-3 bg-bg-primary border border-border-dim rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm text-text-primary font-bold"
+                                        value={formData.startDate}
+                                        onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-text-secondary uppercase tracking-[2px] mb-2 block">End Date</label>
-                                <input
-                                    type="date"
-                                    required
-                                    className="w-full p-3 bg-bg-primary border border-border-dim rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm text-text-primary font-bold"
-                                    value={formData.endDate}
-                                    onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
-                                />
+                                <div className="date-input-wrapper">
+                                    <input
+                                        type="date"
+                                        required
+                                        className="w-full p-3 bg-bg-primary border border-border-dim rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm text-text-primary font-bold"
+                                        value={formData.endDate}
+                                        onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                                    />
+                                </div>
                             </div>
                         </div>
 
