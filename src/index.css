@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --text-primary: #1d1d1f;
+  --text-secondary: #86868b;
+  --border-color: #d2d2d7;
+  --workday-blue: #0071e3;
+  --workday-lightBlue: #0077ed;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark {
+  --bg-primary: #121212;
+  --bg-secondary: #1d1d1f;
+  --text-primary: #f5f5f7;
+  --text-secondary: #a1a1a6;
+  --border-color: #333336;
+  --workday-blue: #2997ff;
+  --workday-lightBlue: #40a2ff;
+}
+
+/* Force dark: variant to use our .dark class in Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+@theme {
+  --color-workday-blue: var(--workday-blue);
+  --color-workday-light-blue: var(--workday-lightBlue);
+  --color-workday-dark-blue: #00448A;
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border-dim: var(--border-color);
+}
+
+/* Rich Text Editor Styling (Quill) */
+.rich-text-wrapper {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.rich-text-wrapper:focus-within {
+  border-color: var(--workday-blue);
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
+}
+
+.ql-toolbar.ql-snow {
+  border: none !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  background-color: var(--bg-primary) !important;
+  padding: 8px 12px !important;
+}
+
+.ql-container.ql-snow {
+  border: none !important;
+  font-family: inherit !important;
+  font-size: 0.95rem !important;
+  color: var(--text-primary) !important;
+  min-height: 140px;
+}
+
+.ql-editor {
+  padding: 16px !important;
+  line-height: 1.6 !important;
+}
+
+.ql-editor.ql-blank::before {
+  color: var(--text-secondary) !important;
+  opacity: 0.5;
+  font-style: italic;
+  left: 16px !important;
+}
+
+/* Dark Mode Adjustments for Quill Icons */
+.dark .ql-stroke {
+  stroke: var(--text-primary) !important;
+}
+
+.dark .ql-fill {
+  fill: var(--text-primary) !important;
+}
+
+.dark .ql-picker {
+  color: var(--text-primary) !important;
+}
+
+.dark .ql-picker-options {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+}
