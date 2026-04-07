@@ -258,7 +258,10 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                                                 <button
                                                     key={idx}
                                                     onClick={() => {
+                                                        const itemTitle = link.title;
                                                         setTab(link.type);
+                                                        setSearchVal(itemTitle);
+                                                        onSearch(itemTitle);
                                                         setAiResponse(null);
                                                     }}
                                                     className="flex items-center space-x-2 px-4 py-2 bg-bg-primary border border-border-dim hover:border-workday-blue rounded-xl text-[10px] font-black uppercase tracking-widest text-workday-blue transition-all active:scale-95"
