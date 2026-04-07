@@ -65,8 +65,25 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
         setAiResponse(null);
 
         try {
+            // 0. SLIM DATA: Only send essential info to AI to reduce payload size and avoid "High Demand" errors
+            const getSlimData = (raw) => {
+                const slim = {};
+                for (const key in raw) {
+                    if (Array.isArray(raw[key])) {
+                        slim[key] = raw[key].map(item => ({
+                            id: item.id,
+                            title: item.title || item.topic || 'Untitled',
+                            category: item.category || '',
+                            date: item.date || item.startDate || ''
+                        }));
+                    }
+                }
+                return slim;
+            };
+
+            const slimContext = getSlimData(contextData);
+
             // 1. DYNAMIC DISCOVERY: Ask Google what models we actually have access to
-            console.log("[AI] Discovering available models...");
             const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`;
             const listResponse = await fetch(listUrl);
             
@@ -76,7 +93,6 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
 
             const listData = await listResponse.json();
             
-            // Filter models that support generating content
             const availableModels = listData.models
                 .filter(m => m.supportedGenerationMethods.includes('generateContent'))
                 .map(m => m.name);
@@ -85,17 +101,16 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                 throw new Error("No compatible Gemini models found in your account.");
             }
 
-            // 2. GENERATE CONTENT with auto-retry on multiple models
+            // 2. GENERATE CONTENT with auto-retry and delay
             const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
-            Analyze the user's data: ${JSON.stringify(contextData)}
+            Analyze the user's data: ${JSON.stringify(slimContext)}
             
             Instructions:
-            1. Answer precisely based on the data provided.
-            2. If you find a relevant activity, doc, meeting, or project, format it as a link: [[link:TYPE:ID:TITLE]].
-               - TYPE must be exactly: "activities", "docs", "meetings", or "projects".
+            1. Answer precisely based on the titles and IDs provided.
+            2. If you find a relevant item, format it as a link: [[link:TYPE:ID:TITLE]].
+               - TYPE must be: "activities", "docs", "meetings", or "projects".
             3. Use the user's language (Spanish/English). Be professional.`;
 
-            // Sort models by priority (latest first)
             const sortedModels = availableModels.sort((a, b) => {
                 const priority = (name) => {
                     if (name.includes('gemini-3.1')) return 10;
@@ -107,9 +122,9 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                 return priority(b) - priority(a);
             });
 
-            console.log(`[AI] Sorted Models for attempt:`, sortedModels);
-
+            const delay = (ms) => new Promise(res => setTimeout(res, ms));
             let lastErrorMessage = "";
+
             for (const modelName of sortedModels) {
                 try {
                     console.log(`[AI] Attempting with model: ${modelName}`);
@@ -134,16 +149,23 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                         const msg = errorData.error?.message || 'Error';
                         console.warn(`[AI] Model ${modelName} failed: ${msg}`);
                         lastErrorMessage = msg;
-                        continue; // Try next model!
+                        
+                        // Wait a bit before next attempt if it's a "High Demand" or "Overloaded" error
+                        if (msg.includes('demand') || msg.includes('limit')) {
+                            console.log("[AI] High demand detected, waiting 1s...");
+                            await delay(1000);
+                        }
+                        continue; 
                     }
 
                     const result = await response.json();
                     const text = result.candidates[0].content.parts[0].text;
                     setAiResponse(text);
-                    return; // EXIT loop on success!
+                    return; 
                 } catch (loopErr) {
-                    console.error(`[AI] Exception in loop for ${modelName}:`, loopErr);
+                    console.error(`[AI] Exception for ${modelName}:`, loopErr);
                     lastErrorMessage = loopErr.message;
+                    await delay(500); 
                 }
             }
             
