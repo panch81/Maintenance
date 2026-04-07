@@ -10,7 +10,8 @@ export const useDriveStorage = () => {
         activities: [],
         documentation: [],
         meetings: [],
-        projects: []
+        projects: [],
+        trash: []
     });
     const [settings, setSettings] = useState({
         categories: { activities: [], documentation: [], meetings: [], pending: [], projects: [] },
@@ -22,7 +23,8 @@ export const useDriveStorage = () => {
         documentation: null,
         meetings: null,
         projects: null,
-        settings: null
+        settings: null,
+        trash: null
     });
 
     const initialize = useCallback(async () => {
@@ -32,7 +34,7 @@ export const useDriveStorage = () => {
             const fid = await driveService.getFolderId();
             setFolderId(fid);
 
-            const files = ['activities', 'documentation', 'meetings', 'projects', 'settings'];
+            const files = ['activities', 'documentation', 'meetings', 'projects', 'settings', 'trash'];
             const newData = { ...data };
             const newFileIds = { ...fileIds };
             let newSettings = { ...settings };
@@ -72,7 +74,8 @@ export const useDriveStorage = () => {
                 activities: prev.activities || [],
                 documentation: prev.documentation || [],
                 meetings: prev.meetings || [],
-                projects: prev.projects || []
+                projects: prev.projects || [],
+                trash: prev.trash || []
             }));
         } finally {
             setLoading(false);
