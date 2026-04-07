@@ -64,58 +64,77 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
         setIsAiLoading(true);
         setAiResponse(null);
 
-        const models = [
-            'gemini-3.1-flash',
-            'gemini-3-flash',
-            'gemini-2.5-flash',
-            'gemini-1.5-flash'
-        ];
-
-        let lastError = null;
-
-        for (const modelId of models) {
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
-                const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
-                Analyze the user's data: ${JSON.stringify(contextData)}
-                
-                Instructions:
-                1. Answer precisely. Format links as [[link:TYPE:ID:TITLE]].
-                2. TYPE: "activities", "docs", "meetings", "projects".
-                3. Be professional.`;
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            role: 'user',
-                            parts: [
-                                { text: "SYSTEM INSTRUCTIONS:\n" + systemPrompt },
-                                { text: "\n\nUSER QUERY:\n" + query }
-                            ]
-                        }]
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error?.message || 'Failed');
-                }
-
-                const result = await response.json();
-                const text = result.candidates[0].content.parts[0].text;
-                setAiResponse(text);
-                setIsAiLoading(false);
-                return; // Success!
-            } catch (err) {
-                console.warn(`Model ${modelId} failed:`, err.message);
-                lastError = err.message;
+        try {
+            // 1. DYNAMIC DISCOVERY: Ask Google what models we actually have access to
+            console.log("[AI] Discovering available models...");
+            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`;
+            const listResponse = await fetch(listUrl);
+            
+            if (!listResponse.ok) {
+                throw new Error("Failed to list models. Please check your API Key.");
             }
-        }
 
-        setAiResponse("No se pudo contactar con ningún modelo de IA. Último error: " + lastError);
-        setIsAiLoading(false);
+            const listData = await listResponse.json();
+            
+            // Filter models that support generating content
+            const availableModels = listData.models
+                .filter(m => m.supportedGenerationMethods.includes('generateContent'))
+                .map(m => m.name);
+
+            if (availableModels.length === 0) {
+                throw new Error("No compatible Gemini models found in your account.");
+            }
+
+            // Priority: 3.1 > 3 > 2.5 > 1.5 > everything else
+            const bestModel = availableModels.find(m => m.includes('gemini-3.1-flash')) ||
+                             availableModels.find(m => m.includes('gemini-3.1')) ||
+                             availableModels.find(m => m.includes('gemini-3-flash')) ||
+                             availableModels.find(m => m.includes('gemini-2.5')) ||
+                             availableModels.find(m => m.includes('gemini-1.5-flash')) ||
+                             availableModels[0];
+
+            console.log(`[AI] Using best available model: ${bestModel}`);
+
+            // 2. GENERATE CONTENT using the discovered model
+            const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${bestModel}:generateContent?key=${GEMINI_API_KEY}`;
+            
+            const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
+            Analyze the user's data: ${JSON.stringify(contextData)}
+            
+            Instructions:
+            1. Answer precisely based on the data provided.
+            2. If you find a relevant activity, doc, meeting, or project, format it as a link: [[link:TYPE:ID:TITLE]].
+               - TYPE must be exactly: "activities", "docs", "meetings", or "projects".
+            3. Use the user's language (Spanish/English). Be professional.`;
+
+            const response = await fetch(generateUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { text: "SYSTEM INSTRUCTIONS:\n" + systemPrompt },
+                            { text: "\n\nUSER QUERY:\n" + query }
+                        ]
+                    }]
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'Generation failed');
+            }
+
+            const result = await response.json();
+            const text = result.candidates[0].content.parts[0].text;
+            setAiResponse(text);
+        } catch (err) {
+            console.error("[AI] Error:", err.message);
+            setAiResponse("⚠️ Hubo un problema con la IA: " + err.message + ". Asegúrate de que tu API Key es correcta y tiene permisos.");
+        } finally {
+            setIsAiLoading(false);
+        }
     };
 
     const parseLinks = (text) => {
