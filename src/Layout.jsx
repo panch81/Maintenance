@@ -73,7 +73,7 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
 
         for (const modelId of models) {
             try {
-                const url = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
                 const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
                 Analyze the user's data: ${JSON.stringify(contextData)}
                 
