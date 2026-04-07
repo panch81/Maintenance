@@ -65,7 +65,6 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
         setAiResponse(null);
 
         try {
-            // 0. SLIM DATA: Only send essential info to AI to reduce payload size and avoid "High Demand" errors
             const getSlimData = (raw) => {
                 const slim = {};
                 for (const key in raw) {
@@ -83,34 +82,28 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
 
             const slimContext = getSlimData(contextData);
 
-            // 1. DYNAMIC DISCOVERY: Ask Google what models we actually have access to
+            // 1. DYNAMIC DISCOVERY with Timeout
             const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`;
-            const listResponse = await fetch(listUrl);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout for discovery
+            
+            const listResponse = await fetch(listUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
             
             if (!listResponse.ok) {
                 throw new Error("Failed to list models. Please check your API Key.");
             }
 
             const listData = await listResponse.json();
-            
             const availableModels = listData.models
                 .filter(m => m.supportedGenerationMethods.includes('generateContent'))
                 .map(m => m.name);
 
             if (availableModels.length === 0) {
-                throw new Error("No compatible Gemini models found in your account.");
+                throw new Error("No compatible Gemini models found.");
             }
 
-            // 2. GENERATE CONTENT with auto-retry and delay
-            const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
-            Analyze the user's data: ${JSON.stringify(slimContext)}
-            
-            Instructions:
-            1. Answer precisely based on the titles and IDs provided.
-            2. If you find a relevant item, format it as a link: [[link:TYPE:ID:TITLE]].
-               - TYPE must be: "activities", "docs", "meetings", or "projects".
-            3. Use the user's language (Spanish/English). Be professional.`;
-
+            // 2. PREPARE PRIORITY LIST (Limit to Top 3 for speed)
             const sortedModels = availableModels.sort((a, b) => {
                 const priority = (name) => {
                     if (name.includes('gemini-3.1')) return 10;
@@ -120,19 +113,24 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                     return 0;
                 };
                 return priority(b) - priority(a);
-            });
+            }).slice(0, 3); // ONLY TOP 3
+
+            const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
+            Analyze user data: ${JSON.stringify(slimContext)}
+            Format links as: [[link:TYPE:ID:TITLE]]. TYPEs: activities, docs, meetings, projects.`;
 
             const delay = (ms) => new Promise(res => setTimeout(res, ms));
             let lastErrorMessage = "";
 
             for (const modelName of sortedModels) {
                 try {
-                    console.log(`[AI] Attempting with model: ${modelName}`);
-                    const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+                    const genController = new AbortController();
+                    const genTimeout = setTimeout(() => genController.abort(), 8000); // 8s timeout per model
                     
-                    const response = await fetch(generateUrl, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        signal: genController.signal,
                         body: JSON.stringify({
                             contents: [{
                                 role: 'user',
@@ -143,29 +141,22 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                             }]
                         })
                     });
+                    clearTimeout(genTimeout);
 
                     if (!response.ok) {
                         const errorData = await response.json();
                         const msg = errorData.error?.message || 'Error';
-                        console.warn(`[AI] Model ${modelName} failed: ${msg}`);
                         lastErrorMessage = msg;
-                        
-                        // Wait a bit before next attempt if it's a "High Demand" or "Overloaded" error
-                        if (msg.includes('demand') || msg.includes('limit')) {
-                            console.log("[AI] High demand detected, waiting 1s...");
-                            await delay(1000);
-                        }
+                        if (msg.includes('demand')) await delay(500);
                         continue; 
                     }
 
                     const result = await response.json();
-                    const text = result.candidates[0].content.parts[0].text;
-                    setAiResponse(text);
+                    setAiResponse(result.candidates[0].content.parts[0].text);
                     return; 
                 } catch (loopErr) {
-                    console.error(`[AI] Exception for ${modelName}:`, loopErr);
-                    lastErrorMessage = loopErr.message;
-                    await delay(500); 
+                    lastErrorMessage = loopErr.name === 'AbortError' ? 'Timeout' : loopErr.message;
+                    await delay(200); 
                 }
             }
             
