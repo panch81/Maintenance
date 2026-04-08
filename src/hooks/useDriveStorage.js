@@ -40,26 +40,38 @@ export const useDriveStorage = () => {
             let newSettings = { ...settings };
 
             for (const file of files) {
-                console.log(`[Storage] Initializing ${file}...`);
-                const fileData = await driveService.getFile(`${file}.json`, fid);
-                if (fileData) {
-                    if (file === 'settings') {
-                        newSettings = { ...newSettings, ...fileData.content, categories: { ...(newSettings.categories || {}), ...(fileData.content.categories || {}) } };
+                try {
+                    console.log(`[Storage] Fetching ${file}...`);
+                    const fileData = await driveService.getFile(`${file}.json`, fid);
+                    
+                    if (fileData) {
+                        if (file === 'settings') {
+                            newSettings = { 
+                                ...newSettings, 
+                                ...fileData.content, 
+                                categories: { ...(newSettings.categories || {}), ...(fileData.content.categories || {}) } 
+                            };
+                        } else {
+                            newData[file] = Array.isArray(fileData.content) ? fileData.content : [];
+                        }
+                        newFileIds[file] = fileData.id;
+                        console.log(`[Storage] ✅ ${file} loaded. Items:`, newData[file]?.length || 'settings');
                     } else {
-                        newData[file] = Array.isArray(fileData.content) ? fileData.content : [];
+                        // File NOT found, only then create it
+                        const initialContent = file === 'settings' ? settings : [];
+                        console.log(`[Storage] ❓ ${file}.json not found, creating new...`);
+                        const savedFile = await driveService.saveFile(`${file}.json`, initialContent, fid);
+                        if (file === 'settings') {
+                            newSettings = initialContent;
+                        } else {
+                            newData[file] = initialContent;
+                        }
+                        newFileIds[file] = savedFile.id;
                     }
-                    newFileIds[file] = fileData.id;
-                    console.log(`[Storage] Loaded ${file} successfully.`);
-                } else {
-                    const initialContent = file === 'settings' ? settings : [];
-                    console.log(`[Storage] File ${file}.json not found, creating from template...`);
-                    const savedFile = await driveService.saveFile(`${file}.json`, initialContent, fid);
-                    if (file === 'settings') {
-                        newSettings = initialContent;
-                    } else {
-                        newData[file] = initialContent;
-                    }
-                    newFileIds[file] = savedFile.id;
+                } catch (fileError) {
+                    console.error(`[Storage] ❌ Error loading ${file}:`, fileError);
+                    // Critical: if a core file fails, keep the previous state if possible
+                    newData[file] = data[file] || [];
                 }
             }
 
@@ -68,15 +80,13 @@ export const useDriveStorage = () => {
             setFileIds(newFileIds);
             console.log('[Storage] All data loaded from Drive.');
         } catch (error) {
-            console.error('[Storage] CRITICAL: Failed to initialize storage:', error);
-            // Ensure we don't return an incomplete object which would crash components
-            setData(prev => ({
-                activities: prev.activities || [],
-                documentation: prev.documentation || [],
-                meetings: prev.meetings || [],
-                projects: prev.projects || [],
-                trash: prev.trash || []
-            }));
+            console.error('[Storage] 🔥 CRITICAL: Failed to initialize storage:', error);
+            // If we already had some data, don't wipe it with empty state
+            setData(prev => {
+                const isActuallyEmpty = !prev.activities.length && !prev.meetings.length;
+                if (isActuallyEmpty) return prev; // Stay empty if we were never loaded
+                return prev; // Keep what we have if we hit an error mid-session
+            });
         } finally {
             setLoading(false);
         }
