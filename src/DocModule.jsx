@@ -119,17 +119,17 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
                         <div className="grid grid-cols-2 gap-4 col-span-2 md:col-span-1">
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Date</label>
-                            <div className="date-input-wrapper">
-                                <input type="date" required className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                                <Calendar className="date-input-icon text-text-secondary" size={16} />
-                            </div>
+                                <div className="date-input-wrapper">
+                                    <input type="date" required className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                                    <Calendar className="date-input-icon text-text-secondary" size={16} />
+                                </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Due Date</label>
-                            <div className="date-input-wrapper">
-                                <input type="date" required className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
-                                <Calendar className="date-input-icon text-text-secondary" size={16} />
-                            </div>
+                                <div className="date-input-wrapper">
+                                    <input type="date" className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm dark:text-slate-300" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
+                                    <Calendar className="date-input-icon text-text-secondary" size={16} />
+                                </div>
                             </div>
                         </div>
 
@@ -142,23 +142,23 @@ export const DocModule = ({ data, categories = [], projects = [], onSave, onDele
 
                         <div className="col-span-2">
                             <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Notes / Snippet</label>
-                                <RichTextEditor
-                                    value={formData.notes}
-                                    onChange={val => setFormData({ ...formData, notes: val })}
-                                    onImagePaste={handlePaste}
-                                    placeholder="Add snippets, code, or detailed documentation notes..."
-                                />
-                                {uploading && <p className="text-[10px] text-workday-blue animate-pulse mt-2">Uploading image...</p>}
-                                {formData.attachments?.length > 0 && (
-                                    <div className="mt-4 flex flex-wrap gap-2">
-                                        {formData.attachments.map(att => (
-                                            <div key={att.id} className="flex items-center space-x-2 px-3 py-1 bg-gray-100 dark:bg-slate-800 rounded-full text-[10px] font-bold text-gray-600 dark:text-slate-400 border border-gray-200 dark:border-slate-700">
-                                                <Paperclip size={10} />
-                                                <span className="truncate max-w-[100px]">{att.name}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                            <RichTextEditor
+                                value={formData.notes}
+                                onChange={val => setFormData({ ...formData, notes: val })}
+                                onImagePaste={handlePaste}
+                                placeholder="Add snippets, code, or detailed documentation notes..."
+                            />
+                            {uploading && <p className="text-[10px] text-workday-blue animate-pulse mt-2">Uploading image...</p>}
+                            {formData.attachments?.length > 0 && (
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    {formData.attachments.map(att => (
+                                        <div key={att.id} className="flex items-center space-x-2 px-3 py-1 bg-gray-100 dark:bg-slate-800 rounded-full text-[10px] font-bold text-gray-600 dark:text-slate-400 border border-gray-200 dark:border-slate-700">
+                                            <Paperclip size={10} />
+                                            <span className="truncate max-w-[100px]">{att.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 

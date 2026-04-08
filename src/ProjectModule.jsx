@@ -185,7 +185,6 @@ export const ProjectModule = ({ data, allItems = {}, categories = [], onSave, on
                                 <div className="date-input-wrapper">
                                     <input
                                         type="date"
-                                        required
                                         className="w-full p-3 bg-bg-primary border border-border-dim rounded-xl focus:ring-2 focus:ring-workday-blue outline-none text-sm text-text-primary font-bold"
                                         value={formData.endDate}
                                         onChange={e => setFormData({ ...formData, endDate: e.target.value })}
