@@ -117,7 +117,14 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
 
             const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
             Analyze user data: ${JSON.stringify(slimContext)}
-            Format links as: [[link:TYPE:ID:TITLE]]. TYPEs: activities, docs, meetings, projects.`;
+            
+            STRICT INSTRUCTIONS:
+            1. Answer EXCLUSIVELY based on the provided data (Activities, Docs, Meetings, Projects). 
+            2. If the user asks for something NOT in the data, state that you don't know or it's not registered. 
+            3. Do NOT use external world knowledge or internet search.
+            4. Format valid items as links: [[link:TYPE:ID:TITLE]]. 
+               - TYPE must be: "activities", "docs", "meetings", or "projects".
+            5. Use the user's language (Spanish/English). Be professional.`;
 
             const delay = (ms) => new Promise(res => setTimeout(res, ms));
             let lastErrorMessage = "";
@@ -245,93 +252,109 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                 </div>
             </aside>
 
-            {/* Main Content */}
+            {/* Main Content Area */}
             <main className="flex-1 flex flex-col relative overflow-hidden transition-colors duration-300">
-                {/* Header / Search */}
+                {/* Minimalist Header */}
                 <header className="h-20 bg-bg-secondary border-b border-border-dim flex items-center px-8 justify-between z-40 shadow-sm">
-                    <div className="flex-1 max-w-2xl relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Search or ask AI (ends with ?)..."
-                            className="w-full pl-12 pr-12 py-3 bg-bg-primary border-2 border-transparent rounded-2xl text-sm font-bold text-text-primary focus:ring-2 focus:ring-workday-blue focus:border-workday-blue/20 focus:bg-bg-secondary transition-all outline-none"
-                            value={searchVal}
-                            onChange={(e) => {
-                                setSearchVal(e.target.value);
-                                onSearch(e.target.value);
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    if (searchVal.includes('?') || searchVal.length > 20) {
-                                        handleAiAsk();
-                                    }
-                                }
-                            }}
-                        />
-                        <button
-                            onClick={() => handleAiAsk()}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-workday-blue hover:bg-bg-secondary rounded-xl transition-all group"
-                            title="Ask AI"
+                    <div className="flex items-center space-x-4">
+                        <button 
+                            onClick={() => setSidebarOpen(!isSidebarOpen)}
+                            className="p-2 hover:bg-bg-primary rounded-xl transition-colors text-text-secondary"
                         >
-                            {isAiLoading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} className="group-hover:scale-110" />}
+                            <Menu size={20} />
                         </button>
+                        <h1 className="text-xl font-black text-workday-blue tracking-tighter italic">HUB</h1>
                     </div>
                 </header>
 
-                {/* AI Response Overlay */}
-                {(aiResponse || isAiLoading) && (
-                    <div className="absolute top-24 left-1/2 -translate-x-1/2 w-full max-w-2xl z-50 animate-in slide-in-from-top-4 duration-500">
-                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border-2 border-workday-blue/30 mx-4">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="flex items-center space-x-3 text-workday-blue">
-                                    <Bot size={24} />
-                                    <h4 className="font-black uppercase tracking-widest text-xs">AI Insight</h4>
-                                </div>
-                                <button onClick={() => setAiResponse(null)} className="p-2 hover:bg-bg-secondary rounded-full transition-all">
-                                    <X size={20} className="text-text-secondary" />
+                <div className="flex-1 overflow-y-auto p-8 relative scrollbar-hide">
+                    {/* New "Mañana"-style Search Box */}
+                    <div className="mb-10 max-w-3xl mx-auto">
+                        <div className="bg-bg-secondary p-5 rounded-[2rem] shadow-xl border border-border-dim group focus-within:border-workday-blue transition-all duration-300">
+                            <div className="flex items-center space-x-4">
+                                <Search className="text-text-secondary group-focus-within:text-workday-blue transition-colors" size={22} />
+                                <input
+                                    type="text"
+                                    placeholder="¿En qué puedo ayudarte hoy?"
+                                    className="flex-1 bg-transparent border-none outline-none text-text-primary placeholder:text-text-secondary/50 font-medium text-lg"
+                                    value={searchVal}
+                                    onChange={(e) => {
+                                        setSearchVal(e.target.value);
+                                        onSearch(e.target.value);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && searchVal.trim()) {
+                                            handleAiAsk();
+                                        }
+                                    }}
+                                />
+                                <button
+                                    onClick={() => handleAiAsk()}
+                                    disabled={isAiLoading || !searchVal.trim()}
+                                    className="p-2.5 bg-gradient-to-r from-workday-blue to-workday-dark-blue text-white rounded-2xl shadow-md hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
+                                >
+                                    {isAiLoading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
                                 </button>
                             </div>
-
-                            {isAiLoading ? (
-                                <div className="flex flex-col items-center py-10 space-y-4">
-                                    <Loader2 className="animate-spin text-workday-blue" size={40} />
-                                    <p className="text-xs font-black uppercase tracking-widest text-text-secondary animate-pulse text-center">Reading Documents &<br />Generating Analysis...</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    <div className="prose prose-sm dark:prose-invert max-w-none text-text-primary font-medium leading-relaxed">
-                                        <ReactMarkdown>{cleanText(aiResponse)}</ReactMarkdown>
-                                    </div>
-
-                                    {parseLinks(aiResponse).length > 0 && (
-                                        <div className="pt-6 border-t border-border-dim flex flex-wrap gap-3">
-                                            {parseLinks(aiResponse).map((link, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => {
-                                                        const itemTitle = link.title;
-                                                        setTab(link.type);
-                                                        setSearchVal(itemTitle);
-                                                        onSearch(itemTitle);
-                                                        setAiResponse(null);
-                                                    }}
-                                                    className="flex items-center space-x-2 px-4 py-2 bg-bg-primary border border-border-dim hover:border-workday-blue rounded-xl text-[10px] font-black uppercase tracking-widest text-workday-blue transition-all active:scale-95"
-                                                >
-                                                    <ArrowRight size={14} />
-                                                    <span>View {link.title}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     </div>
-                )}
 
-                {/* Dynamic Content */}
-                <div className="flex-1 overflow-y-auto p-8 relative scrollbar-hide">
-                    {children}
+                    {/* AI Insight Box (Integrated) */}
+                    {(aiResponse || isAiLoading) && (
+                        <div className="mb-12 max-w-3xl mx-auto animate-in slide-in-from-top-4 duration-500">
+                            <div className="bg-bg-secondary border-2 border-workday-blue/20 rounded-[2rem] shadow-2xl overflow-hidden relative p-8">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex items-center space-x-3 text-workday-blue">
+                                        <Bot size={24} />
+                                        <h4 className="font-black uppercase tracking-widest text-xs">AI Insight</h4>
+                                    </div>
+                                    <button onClick={() => setAiResponse(null)} className="p-2 hover:bg-bg-secondary rounded-full transition-all">
+                                        <X size={20} className="text-text-secondary" />
+                                    </button>
+                                </div>
+
+                                {isAiLoading ? (
+                                    <div className="flex flex-col items-center py-10 space-y-4">
+                                        <Loader2 className="animate-spin text-workday-blue" size={40} />
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary animate-pulse text-center leading-relaxed">Reading Documents &<br />Generating Analysis...</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <div className="prose prose-sm dark:prose-invert max-w-none text-text-primary font-medium leading-relaxed">
+                                            <ReactMarkdown>{cleanText(aiResponse)}</ReactMarkdown>
+                                        </div>
+
+                                        {parseLinks(aiResponse).length > 0 && (
+                                            <div className="pt-6 border-t border-border-dim flex flex-wrap gap-3">
+                                                {parseLinks(aiResponse).map((link, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => {
+                                                            const itemTitle = link.title;
+                                                            setTab(link.type);
+                                                            setSearchVal(itemTitle);
+                                                            onSearch(itemTitle);
+                                                            setAiResponse(null);
+                                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                        }}
+                                                        className="flex items-center space-x-2 px-4 py-2 bg-bg-primary border border-border-dim hover:border-workday-blue rounded-xl text-[10px] font-black uppercase tracking-widest text-workday-blue transition-all active:scale-95"
+                                                    >
+                                                        <ArrowRight size={14} />
+                                                        <span>Ver {link.title}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Dynamic Modules (Activities, Docs, etc) */}
+                    <div className="pb-20">
+                        {children}
+                    </div>
                 </div>
             </main>
         </div>
