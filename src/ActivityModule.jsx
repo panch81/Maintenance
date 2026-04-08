@@ -3,7 +3,7 @@ import {
     Plus, Trash2, Edit3, Paperclip, CheckCircle,
     ExternalLink, Flag, Image as ImageIcon, X,
     Activity, Calendar, ChevronDown, ChevronUp,
-    AlertCircle, Eye, LayoutGrid, List
+    AlertCircle, Eye
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import RichTextEditor from './components/RichTextEditor';
@@ -17,7 +17,6 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [expandedImage, setExpandedImage] = useState(null);
-    const [viewMode, setViewMode] = useState('list'); // 'list' | 'kanban'
     const [viewingItem, setViewingItem] = useState(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
@@ -76,31 +75,13 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                     <h2 className="text-2xl font-black text-text-primary">Activities</h2>
                     <p className="text-sm text-text-secondary font-medium">Manage your tasks and deadlines.</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                    <div className="flex items-center bg-bg-primary p-1 rounded-xl border border-border-dim mr-2">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-workday-blue text-white shadow-sm' : 'text-text-secondary hover:bg-bg-secondary'}`}
-                            title="List View"
-                        >
-                            <List size={18} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('kanban')}
-                            className={`p-2 rounded-lg transition-all ${viewMode === 'kanban' ? 'bg-workday-blue text-white shadow-sm' : 'text-text-secondary hover:bg-bg-secondary'}`}
-                            title="Kanban Board"
-                        >
-                            <LayoutGrid size={18} />
-                        </button>
-                    </div>
-                    <button
-                        onClick={() => setIsAdding(true)}
-                        className="flex items-center space-x-2 bg-workday-blue text-white px-6 py-3 rounded-xl hover:bg-workday-lightBlue transition-all shadow-md active:scale-95"
-                    >
-                        <Plus size={20} />
-                        <span className="font-bold uppercase tracking-widest text-xs">New Activity</span>
-                    </button>
-                </div>
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="flex items-center space-x-2 bg-workday-blue text-white px-6 py-3 rounded-xl hover:bg-workday-lightBlue transition-all shadow-md active:scale-95"
+                >
+                    <Plus size={20} />
+                    <span className="font-bold uppercase tracking-widest text-xs">New Activity</span>
+                </button>
             </div>
 
             {isAdding && (
@@ -249,162 +230,93 @@ export const ActivityModule = ({ data, categories = [], pendingStatuses = [], pr
                 </form>
             )}
 
-            {viewMode === 'list' ? (
-                <div className="bg-bg-secondary rounded-3xl shadow-sm border border-border-dim overflow-hidden animate-in fade-in duration-500">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-bg-primary/50 border-b border-border-dim">
-                                    <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Title</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Project</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Category</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-black pointer-events-none uppercase tracking-[2px]">Status</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-black pointer-events-none uppercase tracking-[2px]">Pending</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Date</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Due Date</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest text-center">F.U.</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                                {(data || [])
-                                    .sort((a, b) => new Date(b.date) - new Date(a.date))
-                                    .map(item => (
-                                    <tr key={item.id} className={`group hover:bg-blue-50/30 dark:hover:bg-sky-900/10 transition-colors ${item.closed ? 'opacity-50 grayscale-[0.5]' : ''}`}>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-3">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${(item.pending === 'Completed' || item.pending === 'Finalizado') ? 'bg-green-50 dark:bg-green-900/20 text-green-600' : 'bg-blue-50 dark:bg-sky-900/20 text-workday-blue'}`}>
-                                                    {(item.pending === 'Completed' || item.pending === 'Finalizado') ? <CheckCircle size={16} /> : <Activity size={16} />}
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-gray-900 dark:text-slate-200 text-sm group-hover:text-workday-blue transition-colors line-clamp-1">{item.title}</p>
-                                                    <div
-                                                        className="text-[10px] text-gray-400 dark:text-slate-500 truncate max-w-[200px] line-clamp-1"
-                                                        dangerouslySetInnerHTML={{ __html: item.content?.replace(/<[^>]*>?/gm, ' ') || '' }}
-                                                    />
-                                                </div>
+            <div className="bg-bg-secondary rounded-3xl shadow-sm border border-border-dim overflow-hidden animate-in fade-in duration-500">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-bg-primary/50 border-b border-border-dim">
+                                <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Title</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Project</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Category</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black pointer-events-none uppercase tracking-[2px]">Status</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black pointer-events-none uppercase tracking-[2px]">Pending</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Date</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Due Date</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest text-center">F.U.</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-text-secondary uppercase tracking-widest text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                            {(data || [])
+                                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                .map(item => (
+                                <tr key={item.id} className={`group hover:bg-blue-50/30 dark:hover:bg-sky-900/10 transition-colors ${item.closed ? 'opacity-50 grayscale-[0.5]' : ''}`}>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${(item.pending === 'Completed' || item.pending === 'Finalizado') ? 'bg-green-50 dark:bg-green-900/20 text-green-600' : 'bg-blue-50 dark:bg-sky-900/20 text-workday-blue'}`}>
+                                                {(item.pending === 'Completed' || item.pending === 'Finalizado') ? <CheckCircle size={16} /> : <Activity size={16} />}
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-md text-[9px] font-black uppercase tracking-widest">
-                                                {projects.find(p => p.id === item.projectId)?.title || 'No Project'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-1 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-md text-[9px] font-black uppercase tracking-widest">{item.category || 'None'}</span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-5 h-5 rounded-md text-red-500 focus:ring-red-500 border-gray-200 dark:border-slate-700 dark:bg-slate-800 cursor-pointer transition-all hover:scale-110"
-                                                    checked={item.closed || false}
-                                                    onChange={(e) => onSave({ ...item, closed: e.target.checked })}
-                                                    onClick={(e) => e.stopPropagation()}
+                                            <div>
+                                                <p className="font-bold text-gray-900 dark:text-slate-200 text-sm group-hover:text-workday-blue transition-colors line-clamp-1">{item.title}</p>
+                                                <div
+                                                    className="text-[10px] text-gray-400 dark:text-slate-500 truncate max-w-[200px] line-clamp-1"
+                                                    dangerouslySetInnerHTML={{ __html: item.content?.replace(/<[^>]*>?/gm, ' ') || '' }}
                                                 />
-                                                <span className={`text-[10px] font-black uppercase tracking-widest ${item.closed ? 'text-red-500' : 'text-gray-400 dark:text-slate-500'}`}>
-                                                    {item.closed ? 'Closed' : 'Active'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-1 bg-blue-50 dark:bg-sky-900/20 text-workday-blue dark:text-sky-400 rounded-md text-[9px] font-black uppercase tracking-widest">{item.pending || 'None'}</span>
-                                        </td>
-                                        <td className="px-6 py-4 text-xs font-bold text-gray-600 dark:text-slate-400 font-mono tracking-tighter">{item.date}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-2 text-xs font-bold text-gray-600 dark:text-slate-400 font-mono tracking-tighter">
-                                                {item.dueDate ? (
-                                                    <>
-                                                        <Calendar size={12} className="text-gray-300 dark:text-slate-600" />
-                                                        <span className={new Date(item.dueDate) < new Date() ? 'text-red-500' : ''}>{item.dueDate}</span>
-                                                    </>
-                                                ) : '-'}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {item.followUp && <Flag size={14} className="mx-auto text-orange-500 fill-orange-500" />}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => setViewingItem(item)} className="p-2 text-gray-400 hover:text-green-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="View Details"><Eye size={16} /></button>
-                                                <button onClick={() => { setFormData(item); setEditingId(item.id); setIsAdding(true); }} className="p-2 text-gray-400 hover:text-workday-blue hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="Edit Item"><Edit3 size={16} /></button>
-                                                <button onClick={() => setConfirmDeleteId(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="Delete to Trash"><Trash2 size={16} /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            ) : (
-                <div className="flex space-x-6 overflow-x-auto pb-4 custom-scrollbar min-h-[60vh]">
-                    {[ { name: 'Backlog', val: '' }, ...pendingStatuses.map(s => ({ name: s, val: s })) ].map(col => {
-                        const colItems = (data || []).filter(item => (item.pending || '') === col.val && !item.closed);
-                        
-                        return (
-                            <div
-                                key={col.name}
-                                className="flex-shrink-0 w-80 flex flex-col items-start"
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    const itemId = e.dataTransfer.getData("itemId");
-                                    const item = (data || []).find(i => i.id === itemId);
-                                    if (item && item.pending !== col.val) {
-                                        onSave({ ...item, pending: col.val });
-                                    }
-                                }}
-                            >
-                                <div className="flex items-center justify-between w-full mb-4 px-2">
-                                    <div className="flex items-center space-x-2">
-                                        <div className="w-2 h-2 rounded-full bg-workday-blue shadow-[0_0_8px_rgba(0,119,190,0.5)]"></div>
-                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-text-primary whitespace-nowrap">{col.name}</h3>
-                                    </div>
-                                    <span className="text-[10px] font-bold bg-bg-secondary px-2 py-0.5 rounded-full border border-border-dim text-text-secondary">{colItems.length}</span>
-                                </div>
-
-                                <div className="flex-1 w-full space-y-3 bg-bg-primary/30 p-2 rounded-[2rem] border border-dashed border-border-dim/50 min-h-[400px]">
-                                    {colItems.map(item => (
-                                        <div
-                                            key={item.id}
-                                            draggable
-                                            onDragStart={(e) => e.dataTransfer.setData("itemId", item.id)}
-                                            className="group bg-bg-secondary p-4 rounded-2xl border border-border-dim shadow-sm hover:shadow-md hover:border-workday-blue transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
-                                        >
-                                            <div className="flex flex-col space-y-2">
-                                                <div className="flex justify-between items-start">
-                                                    <span className="text-[8px] font-black uppercase tracking-widest text-purple-600 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded">
-                                                        {projects.find(p => p.id === item.projectId)?.title || 'No Project'}
-                                                    </span>
-                                                    {item.followUp && <Flag size={10} className="text-orange-500 fill-orange-500" />}
-                                                </div>
-                                                <h4 className="text-xs font-bold text-text-primary group-hover:text-workday-blue transition-colors line-clamp-2">{item.title}</h4>
-                                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-dim/50">
-                                                    <span className="text-[9px] font-bold text-text-secondary flex items-center space-x-1">
-                                                        <Calendar size={10} />
-                                                        <span>{item.date}</span>
-                                                    </span>
-                                                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => setViewingItem(item)} className="p-1 text-text-secondary hover:text-green-500"><Eye size={12} /></button>
-                                                        <button onClick={() => { setFormData(item); setEditingId(item.id); setIsAdding(true); }} className="p-1 text-text-secondary hover:text-workday-blue"><Edit3 size={12} /></button>
-                                                        <button onClick={() => setConfirmDeleteId(item.id)} className="p-1 text-text-secondary hover:text-red-500"><Trash2 size={12} /></button>
-                                                    </div>
-                                                </div>
                                             </div>
                                         </div>
-                                    ))}
-                                    {colItems.length === 0 && (
-                                        <div className="h-24 flex items-center justify-center text-[10px] font-black uppercase text-text-secondary opacity-30 mt-4">
-                                            Empty Column
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-md text-[9px] font-black uppercase tracking-widest">
+                                            {projects.find(p => p.id === item.projectId)?.title || 'No Project'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2 py-1 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-md text-[9px] font-black uppercase tracking-widest">{item.category || 'None'}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                className="w-5 h-5 rounded-md text-red-500 focus:ring-red-500 border-gray-200 dark:border-slate-700 dark:bg-slate-800 cursor-pointer transition-all hover:scale-110"
+                                                checked={item.closed || false}
+                                                onChange={(e) => onSave({ ...item, closed: e.target.checked })}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${item.closed ? 'text-red-500' : 'text-gray-400 dark:text-slate-500'}`}>
+                                                {item.closed ? 'Closed' : 'Active'}
+                                            </span>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2 py-1 bg-blue-50 dark:bg-sky-900/20 text-workday-blue dark:text-sky-400 rounded-md text-[9px] font-black uppercase tracking-widest">{item.pending || 'None'}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-xs font-bold text-gray-600 dark:text-slate-400 font-mono tracking-tighter">{item.date}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center space-x-2 text-xs font-bold text-gray-600 dark:text-slate-400 font-mono tracking-tighter">
+                                            {item.dueDate ? (
+                                                <>
+                                                    <Calendar size={12} className="text-gray-300 dark:text-slate-600" />
+                                                    <span className={new Date(item.dueDate) < new Date() ? 'text-red-500' : ''}>{item.dueDate}</span>
+                                                </>
+                                            ) : '-'}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        {item.followUp && <Flag size={14} className="mx-auto text-orange-500 fill-orange-500" />}
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <div className="flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => setViewingItem(item)} className="p-2 text-gray-400 hover:text-green-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="View Details"><Eye size={16} /></button>
+                                            <button onClick={() => { setFormData(item); setEditingId(item.id); setIsAdding(true); }} className="p-2 text-gray-400 hover:text-workday-blue hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="Edit Item"><Edit3 size={16} /></button>
+                                            <button onClick={() => setConfirmDeleteId(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" title="Delete to Trash"><Trash2 size={16} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            )}
+            </div>
 
             {/* View Detail Modal */}
             {viewingItem && (
