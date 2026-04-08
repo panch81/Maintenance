@@ -105,13 +105,13 @@ export const MeetingModule = ({ data, categories = [], projects = [], onSave, on
                                 <Calendar className="date-input-icon text-text-secondary" size={16} />
                             </div>
                             </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Due Date</label>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[2px] mb-2 block">Due Date</label>
                             <div className="date-input-wrapper">
-                                <input type="date" required className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-workday-blue text-sm dark:text-slate-300" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
+                                <input type="date" className="w-full p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-workday-blue text-sm dark:text-slate-300" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
                                 <Calendar className="date-input-icon text-text-secondary" size={16} />
                             </div>
-                            </div>
+                        </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
