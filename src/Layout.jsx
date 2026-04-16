@@ -66,6 +66,12 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
     const [isSearching, setIsSearching] = useState(false);
     const [boxHeight, setBoxHeight] = useState(settings?.ui?.searchBoxHeight || 400);
     const resizerData = useRef({ startY: 0, startHeight: 0 });
+    const heightRef = useRef(boxHeight);
+
+    // Sync ref with state
+    useEffect(() => {
+        heightRef.current = boxHeight;
+    }, [boxHeight]);
 
     // Sync boxHeight if settings change externally
     useEffect(() => {
@@ -138,18 +144,18 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', stopResizing);
         
-        // Persist height in settings
+        // Persist height in settings using ref to avoid stale closure
         if (onSaveSettings && settings) {
             const newSettings = {
                 ...settings,
                 ui: {
                     ...(settings.ui || {}),
-                    searchBoxHeight: boxHeight
+                    searchBoxHeight: heightRef.current
                 }
             };
             onSaveSettings(newSettings);
         }
-    }, [handleMouseMove, boxHeight, settings, onSaveSettings]);
+    }, [handleMouseMove, settings, onSaveSettings]); // removed boxHeight dependency
 
     const startResizing = useCallback((e) => {
         resizerData.current = {

@@ -9,6 +9,19 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
     const [isSaving, setIsSaving] = useState(false);
     const saveTimeout = useRef(null);
     const resizerData = useRef({ startY: 0, startHeight: 0 });
+    const heightRef = useRef(mañanaHeight);
+
+    // Sync ref with state
+    useEffect(() => {
+        heightRef.current = mañanaHeight;
+    }, [mañanaHeight]);
+
+    // Sync boxHeight if settings change externally
+    useEffect(() => {
+        if (settings?.ui?.mañanaHeight) {
+            setMañanaHeight(settings.ui.mañanaHeight);
+        }
+    }, [settings?.ui?.mañanaHeight]);
 
     const handleMañanaChange = (val) => {
         setMañanaText(val);
@@ -36,17 +49,17 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', stopResizing);
         
-        // Persist height
+        // Persist height using the ref to avoid stale closure
         if (onSaveSettings && settings) {
             onSaveSettings({
                 ...settings,
                 ui: {
                     ...(settings.ui || {}),
-                    mañanaHeight: mañanaHeight
+                    mañanaHeight: heightRef.current
                 }
             });
         }
-    }, [mañanaHeight, settings, onSaveSettings, handleMouseMove]);
+    }, [settings, onSaveSettings, handleMouseMove]); // removed mañanaHeight dependency
 
     const startResizing = useCallback((e) => {
         resizerData.current = {
