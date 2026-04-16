@@ -122,12 +122,12 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
                     />
                 </div>
 
-                {/* Resize Handle */}
+                {/* Resize Handle Area */}
                 <div 
                     onMouseDown={startResizing}
-                    className="h-2 w-full cursor-ns-resize hover:bg-white/10 transition-colors flex items-center justify-center group"
+                    className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize flex items-center justify-center group z-20"
                 >
-                    <div className="w-12 h-1 bg-white/20 rounded-full group-hover:bg-white/40 transition-colors" />
+                    <div className="w-16 h-1 bg-white/20 rounded-full group-hover:bg-white/40 transition-all group-active:w-24 group-active:h-1.5" />
                 </div>
             </div>
 
