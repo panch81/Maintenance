@@ -121,7 +121,18 @@ const AppContent = () => {
 
   // Hybrid Search Logic
   const filteredData = useMemo(() => {
-    const query = searchQuery.toLowerCase();
+    // Normalization helper
+    const normalize = (text) => {
+        if (!text || typeof text !== 'string') return '';
+        return text
+            .replace(/<[^>]*>?/gm, ' ') // Strip HTML
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim();
+    };
+
+    const query = normalize(searchQuery);
     const safeData = {
       activities: data?.activities || [],
       documentation: data?.documentation || [],
@@ -133,16 +144,16 @@ const AppContent = () => {
 
     return {
       activities: safeData.activities.filter(a =>
-        a.title?.toLowerCase().includes(query) || a.content?.toLowerCase().includes(query) || a.category?.toLowerCase().includes(query)
+        normalize(a.title).includes(query) || normalize(a.content).includes(query) || normalize(a.category).includes(query)
       ),
       documentation: safeData.documentation.filter(d =>
-        d.title?.toLowerCase().includes(query) || d.notes?.toLowerCase().includes(query) || d.snippet?.toLowerCase().includes(query) || d.category?.toLowerCase().includes(query)
+        normalize(d.title).includes(query) || normalize(d.notes).includes(query) || normalize(d.snippet).includes(query) || normalize(d.category).includes(query)
       ),
       meetings: safeData.meetings.filter(m =>
-        m.topic?.toLowerCase().includes(query) || m.notes?.toLowerCase().includes(query) || m.category?.toLowerCase().includes(query)
+        normalize(m.topic).includes(query) || normalize(m.notes).includes(query) || normalize(m.category).includes(query)
       ),
       projects: safeData.projects.filter(p =>
-        p.title?.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query) || p.category?.toLowerCase().includes(query)
+        normalize(p.title).includes(query) || normalize(p.description).includes(query) || normalize(p.category).includes(query)
       )
     };
   }, [data, searchQuery]);
@@ -225,6 +236,8 @@ const AppContent = () => {
       user={user}
       showAdminTab={true}
       contextData={data}
+      settings={settings}
+      onSaveSettings={(s) => saveData('settings', s)}
     >
       <div className="relative">
         {currentTab === 'dashboard' && <Dashboard data={filteredData} settings={settings} onSaveSettings={(s) => saveData('settings', s)} onTabChange={setTab} />}

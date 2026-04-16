@@ -4,9 +4,11 @@ import {
 } from 'lucide-react';
 
 export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
+    const [mañanaHeight, setMañanaHeight] = useState(settings?.ui?.mañanaHeight || 150);
     const [mañanaText, setMañanaText] = useState(settings?.mañana || '');
     const [isSaving, setIsSaving] = useState(false);
     const saveTimeout = useRef(null);
+    const resizerData = useRef({ startY: 0, startHeight: 0 });
 
     const handleMañanaChange = (val) => {
         setMañanaText(val);
@@ -21,6 +23,40 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
             }
         }, 1500);
     };
+
+    // Resize Logic for Mañana
+    const stopResizing = useCallback(() => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', stopResizing);
+        
+        // Persist height
+        if (onSaveSettings && settings) {
+            onSaveSettings({
+                ...settings,
+                ui: {
+                    ...(settings.ui || {}),
+                    mañanaHeight: mañanaHeight
+                }
+            });
+        }
+    }, [mañanaHeight, settings, onSaveSettings]);
+
+    const handleMouseMove = useCallback((e) => {
+        const delta = e.clientY - resizerData.current.startY;
+        const newHeight = resizerData.current.startHeight + delta;
+        if (newHeight > 100 && newHeight < 600) {
+            setMañanaHeight(newHeight);
+        }
+    }, []);
+
+    const startResizing = useCallback((e) => {
+        resizerData.current = {
+            startY: e.clientY,
+            startHeight: mañanaHeight
+        };
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', stopResizing);
+    }, [mañanaHeight, stopResizing]);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -58,26 +94,42 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
             </div>
 
             {/* Mañana Focus (Reduced) */}
-            <div className="bg-gradient-to-br from-workday-blue to-workday-dark-blue dark:from-bg-secondary dark:to-bg-primary p-6 rounded-[2rem] shadow-xl relative overflow-hidden group border border-border-dim">
-                <div className="absolute top-0 right-0 p-8 bg-white/5 rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-700" />
-                <div className="flex items-center justify-between mb-3 relative z-10">
-                    <div className="flex items-center space-x-3">
-                        <Sunrise size={20} className="text-white" />
-                        <h3 className="text-lg font-black tracking-tight text-white uppercase italic">Mañana</h3>
-                    </div>
-                    <div className="flex items-center space-x-2 text-blue-200">
-                        {isSaving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
-                        <span className="text-[8px] font-black uppercase tracking-widest opacity-60">
-                            {isSaving ? 'Syncing...' : 'Saved'}
-                        </span>
+            <div 
+                className="bg-gradient-to-br from-workday-blue to-workday-dark-blue dark:from-bg-secondary dark:to-bg-primary rounded-[2rem] shadow-xl relative overflow-hidden group border border-border-dim flex flex-col"
+                style={{ height: `${mañanaHeight}px` }}
+            >
+                <div className="p-6 pb-2">
+                    <div className="absolute top-0 right-0 p-8 bg-white/5 rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-700" />
+                    <div className="flex items-center justify-between mb-3 relative z-10">
+                        <div className="flex items-center space-x-3">
+                            <Sunrise size={20} className="text-white" />
+                            <h3 className="text-lg font-black tracking-tight text-white uppercase italic">Mañana</h3>
+                        </div>
+                        <div className="flex items-center space-x-2 text-blue-200">
+                            {isSaving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                            <span className="text-[8px] font-black uppercase tracking-widest opacity-60">
+                                {isSaving ? 'Syncing...' : 'Saved'}
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <textarea
-                    className="w-full bg-white/10 dark:bg-black/20 backdrop-blur-sm border border-white/20 rounded-xl p-4 h-24 outline-none focus:bg-white/20 transition-all font-medium text-base text-white placeholder:text-blue-200/50 resize-none shadow-inner"
-                    placeholder="Tomorrow's focus..."
-                    value={mañanaText}
-                    onChange={(e) => handleMañanaChange(e.target.value)}
-                />
+                
+                <div className="flex-1 px-6 pb-4">
+                    <textarea
+                        className="w-full h-full bg-white/10 dark:bg-black/20 backdrop-blur-sm border border-white/20 rounded-xl p-4 outline-none focus:bg-white/20 transition-all font-medium text-base text-white placeholder:text-blue-200/50 resize-none shadow-inner"
+                        placeholder="Tomorrow's focus..."
+                        value={mañanaText}
+                        onChange={(e) => handleMañanaChange(e.target.value)}
+                    />
+                </div>
+
+                {/* Resize Handle */}
+                <div 
+                    onMouseDown={startResizing}
+                    className="h-2 w-full cursor-ns-resize hover:bg-white/10 transition-colors flex items-center justify-center group"
+                >
+                    <div className="w-12 h-1 bg-white/20 rounded-full group-hover:bg-white/40 transition-colors" />
+                </div>
             </div>
 
             {/* Main Grid: 2/3 for Future Tasks & Projects, 1/3 for Priority Watchlist */}

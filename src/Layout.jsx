@@ -45,17 +45,35 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     </button>
 );
 
-export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, contextData }) => {
+export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, contextData, settings, onSaveSettings }) => {
     const { logout, user } = useAuth();
     const { isDark, toggleTheme } = useTheme();
     const [isSidebarOpen, setSidebarOpen] = useState(true);
+
+    // Helper to normalize text for search (strip accents and HTML)
+    const normalizeText = (text) => {
+        if (!text || typeof text !== 'string') return '';
+        return text
+            .replace(/<[^>]*>?/gm, ' ') // Strip HTML tags
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "") // Strip accents
+            .toLowerCase()
+            .trim();
+    };
 
     // Search States
     const [searchVal, setSearchVal] = useState('');
     const [localResults, setLocalResults] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
-    const [boxHeight, setBoxHeight] = useState(400); // Default height
+    const [boxHeight, setBoxHeight] = useState(settings?.ui?.searchBoxHeight || 400);
     const resizerData = useRef({ startY: 0, startHeight: 0 });
+
+    // Sync boxHeight if settings change externally
+    useEffect(() => {
+        if (settings?.ui?.searchBoxHeight) {
+            setBoxHeight(settings.ui.searchBoxHeight);
+        }
+    }, [settings?.ui?.searchBoxHeight]);
 
     const cleanSnippet = (text) => {
         if (!text) return '';
@@ -73,14 +91,14 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
         onSearch(query); // Filters the modules below
 
         const results = [];
-        const q = query.toLowerCase();
+        const q = normalizeText(query); // Use normalized query
 
         // Deep search across all context data
         if (contextData) {
             Object.keys(contextData).forEach(type => {
                 if (Array.isArray(contextData[type]) && type !== 'trash' && type !== 'settings') {
                     contextData[type].forEach(item => {
-                        const contentToSearch = [
+                        const contentToSearch = normalizeText([
                             item.title,
                             item.topic,
                             item.content,
@@ -89,14 +107,14 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                             item.snippet,
                             item.category,
                             item.tags?.join(' ')
-                        ].filter(Boolean).join(' ').toLowerCase();
+                        ].filter(Boolean).join(' '));
 
                         if (contentToSearch.includes(q)) {
                             results.push({
                                 type: type === 'documentation' ? 'docs' : type,
                                 id: item.id,
                                 title: item.title || item.topic || 'Untitled',
-                                snippet: item.content || item.notes || item.description || ''
+                                snippet: item.snippet || item.notes || item.description || item.content || ''
                             });
                         }
                     });
@@ -120,7 +138,19 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
     const stopResizing = useCallback(() => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', stopResizing);
-    }, [handleMouseMove]);
+        
+        // Persist height in settings
+        if (onSaveSettings && settings) {
+            const newSettings = {
+                ...settings,
+                ui: {
+                    ...(settings.ui || {}),
+                    searchBoxHeight: boxHeight
+                }
+            };
+            onSaveSettings(newSettings);
+        }
+    }, [handleMouseMove, boxHeight, settings, onSaveSettings]);
 
     const startResizing = useCallback((e) => {
         resizerData.current = {
