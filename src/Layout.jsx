@@ -22,7 +22,6 @@ import {
     Sparkle,
     Trash2,
     CheckSquare,
-    Settings,
     Bell,
     User,
     ShieldCheck,

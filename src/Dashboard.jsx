@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Clock, Calendar, CheckCircle, Sunrise, Briefcase, ChevronRight, Loader2, Flag, AlertCircle
 } from 'lucide-react';
@@ -24,7 +24,14 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
         }, 1500);
     };
 
-    // Resize Logic for Mañana
+    const handleMouseMove = useCallback((e) => {
+        const delta = e.clientY - resizerData.current.startY;
+        const newHeight = resizerData.current.startHeight + delta;
+        if (newHeight > 100 && newHeight < 600) {
+            setMañanaHeight(newHeight);
+        }
+    }, []);
+
     const stopResizing = useCallback(() => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', stopResizing);
@@ -39,15 +46,7 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
                 }
             });
         }
-    }, [mañanaHeight, settings, onSaveSettings]);
-
-    const handleMouseMove = useCallback((e) => {
-        const delta = e.clientY - resizerData.current.startY;
-        const newHeight = resizerData.current.startHeight + delta;
-        if (newHeight > 100 && newHeight < 600) {
-            setMañanaHeight(newHeight);
-        }
-    }, []);
+    }, [mañanaHeight, settings, onSaveSettings, handleMouseMove]);
 
     const startResizing = useCallback((e) => {
         resizerData.current = {
@@ -56,7 +55,7 @@ export const Dashboard = ({ data, settings, onSaveSettings, onTabChange }) => {
         };
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', stopResizing);
-    }, [mañanaHeight, stopResizing]);
+    }, [mañanaHeight, stopResizing, handleMouseMove]);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
