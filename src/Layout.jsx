@@ -55,6 +55,13 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
     const [localResults, setLocalResults] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
     const [boxHeight, setBoxHeight] = useState(400); // Default height
+    const resizerData = useRef({ startY: 0, startHeight: 0 });
+
+    const cleanSnippet = (text) => {
+        if (!text) return '';
+        return text.replace(/[#*`]/g, '').slice(0, 150) + (text.length > 150 ? '...' : '');
+    };
+
     const handleLocalSearch = useCallback((query = searchVal) => {
         if (!query.trim()) {
             setLocalResults(null);
@@ -101,14 +108,7 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
         setIsSearching(false);
     }, [searchVal, contextData, onSearch]);
 
-    // Resize Logic
-    const resizerData = useRef({ startY: 0, startHeight: 0 });
-    
-    const stopResizing = useCallback(() => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', stopResizing);
-    }, [handleMouseMove]);
-
+    // Resize Logic - Defined in sequence to avoid ReferenceErrors
     const handleMouseMove = useCallback((e) => {
         const delta = e.clientY - resizerData.current.startY;
         const newHeight = resizerData.current.startHeight + delta;
@@ -116,6 +116,11 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
             setBoxHeight(newHeight);
         }
     }, []);
+
+    const stopResizing = useCallback(() => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', stopResizing);
+    }, [handleMouseMove]);
 
     const startResizing = useCallback((e) => {
         resizerData.current = {
@@ -125,12 +130,6 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', stopResizing);
     }, [boxHeight, handleMouseMove, stopResizing]);
-
-    const cleanSnippet = (text) => {
-        if (!text) return '';
-        // Remove markdown or html simple tags if any
-        return text.replace(/[#*`]/g, '').slice(0, 150) + (text.length > 150 ? '...' : '');
-    };
 
     return (
         <div className="flex h-screen bg-bg-primary text-text-primary overflow-hidden font-sans transition-colors duration-300">
