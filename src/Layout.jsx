@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     LayoutDashboard,
     Activity,
@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
-import ReactMarkdown from 'react-markdown';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
@@ -51,143 +50,86 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
     const { isDark, toggleTheme } = useTheme();
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
-    // AI Search States
+    // Search States
     const [searchVal, setSearchVal] = useState('');
-    const [aiResponse, setAiResponse] = useState(null);
-    const [isAiLoading, setIsAiLoading] = useState(false);
-    const scrollRef = useRef(null);
+    const [localResults, setLocalResults] = useState(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [boxHeight, setBoxHeight] = useState(400); // Default height
+    const handleLocalSearch = useCallback((query = searchVal) => {
+        if (!query.trim()) {
+            setLocalResults(null);
+            onSearch('');
+            return;
+        }
 
-    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+        setIsSearching(true);
+        onSearch(query); // Filters the modules below
 
-    const handleAiAsk = async (query = searchVal) => {
-        if (!query.trim() || !GEMINI_API_KEY) return;
-        setIsAiLoading(true);
-        setAiResponse(null);
+        const results = [];
+        const q = query.toLowerCase();
 
-        try {
-            const getSlimData = (raw) => {
-                const slim = {};
-                for (const key in raw) {
-                    if (Array.isArray(raw[key])) {
-                        slim[key] = raw[key].map(item => ({
-                            id: item.id,
-                            title: item.title || item.topic || 'Untitled',
-                            category: item.category || '',
-                            date: item.date || item.startDate || ''
-                        }));
-                    }
-                }
-                return slim;
-            };
+        // Deep search across all context data
+        if (contextData) {
+            Object.keys(contextData).forEach(type => {
+                if (Array.isArray(contextData[type]) && type !== 'trash' && type !== 'settings') {
+                    contextData[type].forEach(item => {
+                        const contentToSearch = [
+                            item.title,
+                            item.topic,
+                            item.content,
+                            item.notes,
+                            item.description,
+                            item.snippet,
+                            item.category,
+                            item.tags?.join(' ')
+                        ].filter(Boolean).join(' ').toLowerCase();
 
-            const slimContext = getSlimData(contextData);
-
-            // 1. DYNAMIC DISCOVERY with Timeout
-            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`;
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout for discovery
-            
-            const listResponse = await fetch(listUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            
-            if (!listResponse.ok) {
-                throw new Error("Failed to list models. Please check your API Key.");
-            }
-
-            const listData = await listResponse.json();
-            const availableModels = listData.models
-                .filter(m => m.supportedGenerationMethods.includes('generateContent'))
-                .map(m => m.name);
-
-            if (availableModels.length === 0) {
-                throw new Error("No compatible Gemini models found.");
-            }
-
-            // 2. PREPARE PRIORITY LIST (Limit to Top 3 for speed)
-            const sortedModels = availableModels.sort((a, b) => {
-                const priority = (name) => {
-                    if (name.includes('gemini-3.1')) return 10;
-                    if (name.includes('gemini-3')) return 9;
-                    if (name.includes('gemini-2.5')) return 8;
-                    if (name.includes('gemini-1.5')) return 7;
-                    return 0;
-                };
-                return priority(b) - priority(a);
-            }).slice(0, 3); // ONLY TOP 3
-
-            const systemPrompt = `You are the AI Search Assistant for the Workday Maintenance Hub. 
-            Analyze user data: ${JSON.stringify(slimContext)}
-            
-            STRICT INSTRUCTIONS:
-            1. Answer EXCLUSIVELY based on the provided data (Activities, Docs, Meetings, Projects). 
-            2. If the user asks for something NOT in the data, state that you don't know or it's not registered. 
-            3. Do NOT use external world knowledge or internet search.
-            4. Format valid items as links: [[link:TYPE:ID:TITLE]]. 
-               - TYPE must be: "activities", "docs", "meetings", or "projects".
-            5. Use the user's language (Spanish/English). Be professional.`;
-
-            const delay = (ms) => new Promise(res => setTimeout(res, ms));
-            let lastErrorMessage = "";
-
-            for (const modelName of sortedModels) {
-                try {
-                    const genController = new AbortController();
-                    const genTimeout = setTimeout(() => genController.abort(), 8000); // 8s timeout per model
-                    
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        signal: genController.signal,
-                        body: JSON.stringify({
-                            contents: [{
-                                role: 'user',
-                                parts: [
-                                    { text: "SYSTEM INSTRUCTIONS:\n" + systemPrompt },
-                                    { text: "\n\nUSER QUERY:\n" + query }
-                                ]
-                            }]
-                        })
+                        if (contentToSearch.includes(q)) {
+                            results.push({
+                                type: type === 'documentation' ? 'docs' : type,
+                                id: item.id,
+                                title: item.title || item.topic || 'Untitled',
+                                snippet: item.content || item.notes || item.description || ''
+                            });
+                        }
                     });
-                    clearTimeout(genTimeout);
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        const msg = errorData.error?.message || 'Error';
-                        lastErrorMessage = msg;
-                        if (msg.includes('demand')) await delay(500);
-                        continue; 
-                    }
-
-                    const result = await response.json();
-                    setAiResponse(result.candidates[0].content.parts[0].text);
-                    return; 
-                } catch (loopErr) {
-                    lastErrorMessage = loopErr.name === 'AbortError' ? 'Timeout' : loopErr.message;
-                    await delay(200); 
                 }
-            }
-            
-            throw new Error(`All available models are busy or returned error: ${lastErrorMessage}`);
-        } catch (err) {
-            console.error("[AI] Final Error:", err.message);
-            setAiResponse("⚠️ Hubo un problema con la IA: " + err.message + ". Asegúrate de que tu API Key es correcta y permite estos modelos.");
-        } finally {
-            setIsAiLoading(false);
+            });
         }
-    };
 
-    const parseLinks = (text) => {
-        const regex = /\[\[link:(.*?):(.*?):(.*?)\]\]/g;
-        const links = [];
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-            links.push({ type: match[1], id: match[2], title: match[3] });
+        setLocalResults(results);
+        setIsSearching(false);
+    }, [searchVal, contextData, onSearch]);
+
+    // Resize Logic
+    const resizerData = useRef({ startY: 0, startHeight: 0 });
+    
+    const stopResizing = useCallback(() => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', stopResizing);
+    }, [handleMouseMove]);
+
+    const handleMouseMove = useCallback((e) => {
+        const delta = e.clientY - resizerData.current.startY;
+        const newHeight = resizerData.current.startHeight + delta;
+        if (newHeight > 200 && newHeight < 900) {
+            setBoxHeight(newHeight);
         }
-        return links;
-    };
+    }, []);
 
-    const cleanText = (text) => {
-        return text.replace(/\[\[link:.*?:.*?:.*?\]\]/g, '');
+    const startResizing = useCallback((e) => {
+        resizerData.current = {
+            startY: e.clientY,
+            startHeight: boxHeight
+        };
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', stopResizing);
+    }, [boxHeight, handleMouseMove, stopResizing]);
+
+    const cleanSnippet = (text) => {
+        if (!text) return '';
+        // Remove markdown or html simple tags if any
+        return text.replace(/[#*`]/g, '').slice(0, 150) + (text.length > 150 ? '...' : '');
     };
 
     return (
@@ -275,78 +217,108 @@ export const Layout = ({ children, currentTab, setTab, onSearch, showAdminTab, c
                                 <Search className="text-text-secondary group-focus-within:text-workday-blue transition-colors" size={22} />
                                 <input
                                     type="text"
-                                    placeholder="¿En qué puedo ayudarte hoy?"
+                                    placeholder="Buscar por contenido (pulsa Enter)..."
                                     className="flex-1 bg-transparent border-none outline-none text-text-primary placeholder:text-text-secondary/50 font-medium text-lg"
                                     value={searchVal}
-                                    onChange={(e) => {
-                                        setSearchVal(e.target.value);
-                                        onSearch(e.target.value);
-                                    }}
+                                    onChange={(e) => setSearchVal(e.target.value)}
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && searchVal.trim()) {
-                                            handleAiAsk();
+                                        if (e.key === 'Enter') {
+                                            handleLocalSearch();
                                         }
                                     }}
                                 />
                                 <button
-                                    onClick={() => handleAiAsk()}
-                                    disabled={isAiLoading || !searchVal.trim()}
+                                    onClick={() => handleLocalSearch()}
+                                    disabled={isSearching || !searchVal.trim()}
                                     className="p-2.5 bg-gradient-to-r from-workday-blue to-workday-dark-blue text-white rounded-2xl shadow-md hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
                                 >
-                                    {isAiLoading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                                    {isSearching ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* AI Insight Box (Integrated) */}
-                    {(aiResponse || isAiLoading) && (
-                        <div className="mb-12 max-w-3xl mx-auto animate-in slide-in-from-top-4 duration-500">
-                            <div className="bg-bg-secondary border-2 border-workday-blue/20 rounded-[2rem] shadow-2xl overflow-hidden relative p-8">
-                                <div className="flex justify-between items-start mb-6">
+                    {/* Local Search Results Box (Integrated & Resizable) */}
+                    {(localResults !== null || isSearching) && (
+                        <div className="mb-12 max-w-3xl mx-auto animate-in slide-in-from-top-4 duration-500 relative">
+                            <div 
+                                className="bg-bg-secondary border-2 border-workday-blue/20 rounded-[2rem] shadow-2xl overflow-hidden relative flex flex-col"
+                                style={{ height: `${boxHeight}px` }}
+                            >
+                                <div className="p-8 pb-4 flex justify-between items-center bg-bg-secondary/80 backdrop-blur-sm sticky top-0 z-10">
                                     <div className="flex items-center space-x-3 text-workday-blue">
-                                        <Bot size={24} />
-                                        <h4 className="font-black uppercase tracking-widest text-xs">AI Insight</h4>
+                                        <Search size={20} />
+                                        <h4 className="font-black uppercase tracking-widest text-xs">Resultados de Búsqueda</h4>
                                     </div>
-                                    <button onClick={() => setAiResponse(null)} className="p-2 hover:bg-bg-secondary rounded-full transition-all">
+                                    <button onClick={() => setLocalResults(null)} className="p-2 hover:bg-bg-primary rounded-full transition-all">
                                         <X size={20} className="text-text-secondary" />
                                     </button>
                                 </div>
 
-                                {isAiLoading ? (
-                                    <div className="flex flex-col items-center py-10 space-y-4">
-                                        <Loader2 className="animate-spin text-workday-blue" size={40} />
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary animate-pulse text-center leading-relaxed">Reading Documents &<br />Generating Analysis...</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-6">
-                                        <div className="prose prose-sm dark:prose-invert max-w-none text-text-primary font-medium leading-relaxed">
-                                            <ReactMarkdown>{cleanText(aiResponse)}</ReactMarkdown>
+                                <div className="flex-1 overflow-y-auto px-8 pb-8 scrollbar-hide">
+                                    {isSearching ? (
+                                        <div className="flex flex-col items-center py-20 space-y-4">
+                                            <Loader2 className="animate-spin text-workday-blue" size={40} />
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary animate-pulse">Escaneando contenido...</p>
                                         </div>
-
-                                        {parseLinks(aiResponse).length > 0 && (
-                                            <div className="pt-6 border-t border-border-dim flex flex-wrap gap-3">
-                                                {parseLinks(aiResponse).map((link, idx) => (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => {
-                                                            const itemTitle = link.title;
-                                                            setTab(link.type);
-                                                            setSearchVal(itemTitle);
-                                                            onSearch(itemTitle);
-                                                            setAiResponse(null);
-                                                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                        }}
-                                                        className="flex items-center space-x-2 px-4 py-2 bg-bg-primary border border-border-dim hover:border-workday-blue rounded-xl text-[10px] font-black uppercase tracking-widest text-workday-blue transition-all active:scale-95"
-                                                    >
-                                                        <ArrowRight size={14} />
-                                                        <span>Ver {link.title}</span>
-                                                    </button>
-                                                ))}
+                                    ) : localResults.length === 0 ? (
+                                        <div className="py-20 text-center">
+                                            <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                                                <Search size={30} />
                                             </div>
-                                        )}
-                                    </div>
-                                )}
+                                            <p className="text-text-secondary font-medium">No se encontraron coincidencias para "{searchVal}"</p>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="border-b border-border-dim">
+                                                        <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-text-secondary">Tipo</th>
+                                                        <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-text-secondary">Título / Tema</th>
+                                                        <th className="py-3 px-4 text-[10px] font-black uppercase tracking-widest text-text-secondary">Vista Previa</th>
+                                                        <th className="py-3 px-4"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {localResults.map((item, idx) => (
+                                                        <tr 
+                                                            key={idx} 
+                                                            onClick={() => setTab(item.type)}
+                                                            className="border-b border-border-dim/50 hover:bg-workday-blue/5 transition-colors cursor-pointer group"
+                                                        >
+                                                            <td className="py-4 px-4">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-workday-blue bg-workday-blue/10 px-2 py-1 rounded-md">
+                                                                    {item.type}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-4 px-4">
+                                                                <div className="font-bold text-text-primary text-sm line-clamp-1 group-hover:text-workday-blue transition-colors">
+                                                                    {item.title}
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 px-4 max-w-xs">
+                                                                <div className="text-xs text-text-secondary line-clamp-1 italic">
+                                                                    {cleanSnippet(item.snippet)}
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 px-4 text-right">
+                                                                <ArrowRight size={16} className="text-text-secondary group-hover:text-workday-blue group-hover:translate-x-1 transition-all inline" />
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Resize Handle */}
+                                <div 
+                                    onMouseDown={startResizing}
+                                    className="h-2 w-full cursor-ns-resize hover:bg-workday-blue/20 transition-colors flex items-center justify-center group"
+                                >
+                                    <div className="w-12 h-1 bg-border-dim rounded-full group-hover:bg-workday-blue/50 transition-colors" />
+                                </div>
                             </div>
                         </div>
                     )}
